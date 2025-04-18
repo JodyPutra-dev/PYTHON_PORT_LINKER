@@ -1,0 +1,190 @@
+# DOKUMENTASI PORT FORWARDING MANAGER
+
+## Pendahuluan
+Aplikasi Port Forwarding Manager adalah alat bantu untuk mengatur port forwarding antara Windows dan Windows Subsystem for Linux (WSL). Aplikasi ini memungkinkan Anda untuk mengalihkan lalu lintas pada port 80 dan 443 dari Windows ke mesin WSL Anda, sehingga memungkinkan Anda mengakses layanan web yang berjalan di WSL dari perangkat lain dalam jaringan.
+
+## Persyaratan Sistem
+- Windows 10 atau yang lebih baru
+- Administrator privileges (hak akses administrator)
+- Windows Subsystem for Linux (WSL) terinstal (jika ingin melakukan forwarding ke WSL)
+- Python 3.6 atau yang lebih baru
+
+## Instalasi
+1. Pastikan Python sudah terinstal di sistem Anda
+2. Simpan file `port_switcher.py` ke komputer Anda
+3. Jalankan aplikasi dengan mengklik dua kali file atau melalui command prompt/PowerShell:
+   ```
+   python port_switcher.py
+   ```
+
+## Fitur Utama
+Aplikasi ini menyediakan fitur-fitur berikut:
+1. Mengaktifkan port forwarding dari Windows ke WSL
+2. Menonaktifkan port forwarding
+3. Mendeteksi dan menghentikan aplikasi yang mungkin menggunakan port yang sama (misalnya XAMPP)
+4. Menambahkan aturan firewall secara otomatis
+5. Pemecahan masalah dan pengujian koneksi
+
+## Cara Menggunakan
+
+### Tab Port Forwarding
+
+#### 1. Mengaktifkan Port Forwarding
+1. Masukkan alamat IP komputer Windows Anda di bidang "Alamat IP Listen (IP PC Anda)"
+   - Biasanya berupa alamat seperti 192.168.0.x
+   - Ini adalah alamat yang akan digunakan untuk mengakses dari perangkat lain
+   
+2. Masukkan alamat IP target (WSL) di bidang "Alamat IP Target (IP WSL)"
+   - Untuk menemukan alamat IP WSL Anda, jalankan perintah `ip addr` di terminal WSL
+   - Biasanya berupa alamat seperti 172.x.x.x
+   
+3. Klik tombol "Aktifkan Port Forwarding"
+   - Jika ada aplikasi lain yang menggunakan port 80/443, Anda akan diminta untuk mengambil tindakan
+   - Jika Windows Firewall aktif, aplikasi akan menawarkan untuk menambahkan aturan yang diperlukan
+
+4. Setelah berhasil, Anda akan melihat status "Port Forwarding Diaktifkan" dan daftar aturan yang aktif
+
+#### 2. Menonaktifkan Port Forwarding
+1. Klik tombol "Nonaktifkan Port Forwarding"
+2. Semua aturan port forwarding akan dihapus
+3. Status akan berubah menjadi "Port Forwarding Dinonaktifkan"
+
+#### 3. Menyegarkan Tampilan Aturan
+- Klik tombol "Segarkan Aturan" untuk melihat status terkini aturan port forwarding
+
+### Tab Pemecahan Masalah
+
+Tab ini menyediakan informasi dan alat bantu untuk mengatasi masalah koneksi yang umum:
+
+#### Memeriksa Konfigurasi Jaringan
+1. Klik tombol "Periksa Konfigurasi Jaringan" untuk menampilkan jendela dengan informasi detail
+2. Informasi yang ditampilkan meliputi:
+   - Nama host komputer
+   - Semua alamat IP yang terkait dengan komputer Anda
+   - Status Windows Firewall
+   - Aturan firewall yang terkait dengan port 80/443
+   - Status port (apakah sedang digunakan atau tidak)
+
+#### Panduan Pemecahan Masalah
+Tab ini juga menyediakan panduan langkah demi langkah untuk mengatasi masalah koneksi yang umum:
+1. Memastikan perangkat berada di jaringan yang sama
+2. Memeriksa dan mengonfigurasi Windows Firewall
+3. Mencoba berbagai alamat IP
+4. Menguji akses lokal terlebih dahulu
+5. Memeriksa pengaturan router
+6. Menggunakan protokol dan port yang benar
+7. Menggunakan alat debugging jaringan
+
+## Troubleshooting
+
+### Tidak Dapat Mengakses dari Perangkat Lain
+Jika Anda tidak dapat mengakses layanan web WSL dari perangkat lain:
+
+1. **Verifikasi Port Forwarding Aktif**
+   - Periksa status aplikasi dan pastikan menampilkan "Port Forwarding Diaktifkan"
+   - Periksa daftar aturan untuk memastikan forwarding diatur dengan benar
+
+2. **Periksa Firewall**
+   - Windows Firewall mungkin memblokir koneksi masuk
+   - Gunakan tombol "Periksa Konfigurasi Jaringan" untuk memeriksa status firewall
+   - Pertimbangkan untuk menonaktifkan firewall sementara untuk pengujian
+
+3. **Gunakan Alamat IP yang Benar**
+   - Pastikan Anda menggunakan alamat IP yang benar pada perangkat lain
+   - Coba semua alamat IP yang ditampilkan di jendela "Informasi Jaringan"
+   - Format URL yang benar: `http://[alamat-ip]` (untuk port 80)
+
+4. **Periksa Pengaturan Router**
+   - Beberapa router memiliki fitur isolasi klien yang mencegah perangkat berkomunikasi satu sama lain
+   - Periksa pengaturan router Anda untuk "AP Isolation" atau "Client Isolation"
+
+### Port Sudah Digunakan
+Jika port 80 atau 443 sudah digunakan oleh aplikasi lain:
+
+1. **Identifikasi Aplikasi**
+   - Aplikasi akan menampilkan dialog yang menunjukkan proses mana yang menggunakan port
+   - Untuk aplikasi Python, Anda dapat memilih untuk menghentikan proses tersebut
+
+2. **Matikan Aplikasi Web Lain**
+   - Hentikan aplikasi web server seperti XAMPP, Nginx, IIS, dll.
+   - Setelah aplikasi dihentikan, coba aktifkan port forwarding kembali
+
+## Cara Kerja Aplikasi
+Aplikasi ini menggunakan perintah `netsh interface portproxy` untuk mengonfigurasi port forwarding di Windows. Ketika diaktifkan:
+
+1. Aplikasi pertama memeriksa dan membersihkan aturan yang ada
+2. Kemudian menambahkan aturan baru yang mengarahkan lalu lintas dari alamat IP Windows (atau 0.0.0.0) ke alamat IP WSL target
+3. Aturan dibuat untuk port 80 (HTTP) dan 443 (HTTPS)
+4. Aplikasi mengelola Windows Firewall untuk memastikan koneksi dapat dilakukan
+
+## Tips dan Trik
+
+1. **Akses dari Ponsel**
+   - Gunakan alamat IP Windows yang ditampilkan di "Informasi Jaringan"
+   - Pastikan ponsel terhubung ke jaringan WiFi yang sama
+   - Gunakan format `http://[alamat-ip]` di browser ponsel
+
+2. **Menguji Koneksi**
+   - Uji terlebih dahulu di browser Windows menggunakan alamat `http://localhost`
+   - Kemudian uji menggunakan alamat IP Windows Anda
+   - Terakhir, uji dari perangkat lain
+
+3. **Penggunaan Bersamaan dengan XAMPP**
+   - Matikan Apache XAMPP sebelum mengaktifkan port forwarding
+   - Nonaktifkan port forwarding sebelum menjalankan XAMPP kembali
+
+4. **Alamat IP yang Berubah**
+   - Alamat IP WSL mungkin berubah setelah restart
+   - Perbarui alamat di aplikasi jika koneksi tidak berfungsi setelah restart
+
+## Perintah Berguna untuk WSL
+
+Berikut adalah beberapa perintah berguna saat bekerja dengan WSL:
+
+1. **Memeriksa alamat IP WSL**:
+   ```
+   ip addr
+   ```
+   Cari alamat yang dimulai dengan `inet` pada antarmuka eth0
+
+2. **Memulai server NGINX di WSL**:
+   ```
+   sudo service nginx start
+   ```
+
+3. **Memeriksa status NGINX**:
+   ```
+   sudo service nginx status
+   ```
+
+4. **Lokasi log NGINX** (dapat membantu pemecahan masalah):
+   ```
+   /var/log/nginx/error.log
+   /var/log/nginx/access.log
+   ```
+
+## Keamanan
+
+Perlu diingat bahwa mengaktifkan port forwarding dan mengizinkan koneksi masuk melalui firewall dapat menimbulkan risiko keamanan. Pertimbangkan hal-hal berikut:
+
+1. Aktifkan port forwarding hanya ketika diperlukan
+2. Nonaktifkan saat tidak digunakan
+3. Hati-hati saat membuka firewall
+4. Pastikan server web WSL Anda diperbarui dan dikonfigurasi dengan aman
+
+## Bantuan Tambahan
+
+Jika Anda mengalami masalah yang tidak tercakup dalam dokumentasi ini, coba langkah-langkah berikut:
+
+1. Jalankan aplikasi dengan hak akses administrator
+2. Periksa log event Windows untuk pesan kesalahan
+3. Gunakan alat seperti Wireshark untuk menganalisis lalu lintas jaringan
+4. Hubungi administrator jaringan Anda untuk mendapatkan bantuan dengan konfigurasi jaringan khusus
+
+
+## Pembuatan EXE
+cd "C:\Users\LEGION\Documents\Semua File Penting\PYTHON_PORT_SWITCH\"
+"C:\Program Files\Python313\Scripts\pyinstaller" --onefile --icon=icon.ico --version-file=version.txt PortLinker.py
+
+
+
