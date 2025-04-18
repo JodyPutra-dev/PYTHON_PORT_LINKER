@@ -92,7 +92,7 @@ To build the executable yourself:
 
 2. Build the executable:
    ```
-   pyinstaller --onefile --icon=icon.ico --version-file=version.txt PortLinker.py
+   pyinstaller --icon=icon.ico --version-file=version.txt --noconfirm --windowed --clean --name PortLinker PortLinker.py
    ```
 
 3. Find the executable in the `dist` folder
