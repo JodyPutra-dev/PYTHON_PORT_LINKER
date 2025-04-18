@@ -18,6 +18,112 @@ from PySide6.QtGui import QFont, QColor
 # Daftar port default
 DEFAULT_PORTS = [80, 443, 9072]
 
+# Translation dictionary for multilingual support
+TRANSLATIONS = {
+    "en": {  # English
+        "window_title": "PortLinker",
+        "listen_ip_label": "Listen IP Address (Your PC's IP):",
+        "target_ip_label": "Target IP Address (WSL IP):",
+        "ports_label": "Ports (\"all\" means 80, 443, 9072):",
+        "detect_ip_btn": "Detect IP",
+        "add_port_tooltip": "Add port",
+        "reset_ports_btn": "Reset",
+        "enable_btn": "Enable Port Forwarding",
+        "disable_btn": "Disable Port Forwarding",
+        "refresh_btn": "Refresh Rules",
+        "status_unknown": "Status: Unknown",
+        "status_enabled": "Status: Port Forwarding Enabled\nForwarding {listen_ip}:{ports} → {target_ip}:{ports}",
+        "status_disabled": "Status: Port Forwarding Disabled",
+        "rules_header": "Current Port Proxy Rules:",
+        "tab_forwarding": "Port Forwarding",
+        "tab_troubleshoot": "Troubleshooting",
+        "port_add_title": "Add Port",
+        "port_add_prompt": "Enter port number:",
+        "port_format_error": "Port must be a number: {part}",
+        "port_range_error": "Invalid port range format: {part}",
+        "error_title": "Error",
+        "error_no_target_ip": "Please enter a valid target IP address.",
+        "error_no_ports": "No ports selected for forwarding.",
+        "error_add_port": "Failed to add port: {error}",
+        "error_reset_port": "Failed to reset ports: {error}",
+        "success_title": "Success",
+        "success_disabled": "Port forwarding has been disabled",
+        "network_dialog_title": "Network Information",
+        "network_header": "Network Configuration Information",
+        "hostname_label": "Hostname:",
+        "ip_addresses_label": "IP Addresses:",
+        "firewall_status_label": "Firewall Status:",
+        "firewall_active": "Active",
+        "firewall_inactive": "Inactive",
+        "firewall_rules_label": "Firewall Rules for Port Forward:",
+        "no_firewall_rules": "• No specific rules found for PortLinker",
+        "active_ports_label": "Active Port Status:",
+        "port_in_use": "In Use",
+        "port_free": "Free",
+        "close_btn": "Close",
+        "app_not_ready": "Application is not ready to display network information.",
+        "troubleshoot_header": "Troubleshooting Guide",
+        "check_network_btn": "Check Network Configuration",
+        "language_btn": "Switch to Indonesian"
+    },
+    "id": {  # Indonesian
+        "window_title": "PortLinker",
+        "listen_ip_label": "Alamat IP Listen (IP PC Anda):",
+        "target_ip_label": "Alamat IP Target (IP WSL):",
+        "ports_label": "Port (\"all\" artinya 80, 443, 9072):",
+        "detect_ip_btn": "Deteksi IP",
+        "add_port_tooltip": "Tambah port",
+        "reset_ports_btn": "Reset",
+        "enable_btn": "Aktifkan Port Forwarding",
+        "disable_btn": "Nonaktifkan Port Forwarding",
+        "refresh_btn": "Refresh Aturan",
+        "status_unknown": "Status: Tidak Diketahui",
+        "status_enabled": "Status: Port Forwarding Diaktifkan\nForwarding {listen_ip}:{ports} → {target_ip}:{ports}",
+        "status_disabled": "Status: Port Forwarding Dinonaktifkan",
+        "rules_header": "Aturan Port Proxy Saat Ini:",
+        "tab_forwarding": "Port Forwarding",
+        "tab_troubleshoot": "Pemecahan Masalah",
+        "port_add_title": "Tambah Port",
+        "port_add_prompt": "Masukkan nomor port:",
+        "port_format_error": "Port harus berupa angka: {part}",
+        "port_range_error": "Format rentang port tidak valid: {part}",
+        "error_title": "Error",
+        "error_no_target_ip": "Silakan masukkan alamat IP target yang valid.",
+        "error_no_ports": "Tidak ada port yang dipilih untuk forwarding.",
+        "error_add_port": "Gagal menambahkan port: {error}",
+        "error_reset_port": "Gagal mereset port: {error}",
+        "success_title": "Berhasil",
+        "success_disabled": "Port forwarding telah dinonaktifkan",
+        "network_dialog_title": "Informasi Jaringan",
+        "network_header": "Informasi Konfigurasi Jaringan",
+        "hostname_label": "Hostname:",
+        "ip_addresses_label": "Alamat IP:",
+        "firewall_status_label": "Status Firewall:",
+        "firewall_active": "Aktif",
+        "firewall_inactive": "Tidak Aktif",
+        "firewall_rules_label": "Aturan Firewall untuk Port Forward:",
+        "no_firewall_rules": "• Tidak ditemukan aturan khusus untuk PortLinker",
+        "active_ports_label": "Status Port Aktif:",
+        "port_in_use": "Digunakan",
+        "port_free": "Bebas",
+        "close_btn": "Tutup",
+        "app_not_ready": "Aplikasi belum siap untuk menampilkan informasi jaringan.",
+        "troubleshoot_header": "Panduan Pemecahan Masalah",
+        "check_network_btn": "Periksa Konfigurasi Jaringan",
+        "language_btn": "Ganti ke Bahasa Inggris"
+    }
+}
+
+# Current language (default to Indonesian)
+current_language = "id"
+
+# Function to get translated text
+def get_text(key, **kwargs):
+    text = TRANSLATIONS[current_language].get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
+
 # Define application stylesheet
 STYLESHEET = """
 /* Main Colors:
@@ -602,13 +708,13 @@ def process_port_selection(port_text):
                 # Add all ports in the range
                 port_list.extend(range(start_port, end_port + 1))
             except ValueError:
-                QMessageBox.warning(None, "Format Port", f"Format rentang port tidak valid: {part}")
+                QMessageBox.warning(None, get_text("port_add_title"), get_text("port_range_error", part=part))
         else:
             # Single port
             try:
                 port_list.append(int(part))
             except ValueError:
-                QMessageBox.warning(None, "Format Port", f"Port harus berupa angka: {part}")
+                QMessageBox.warning(None, get_text("port_add_title"), get_text("port_format_error", part=part))
                 
     # Remove duplicates
     port_list = list(set(port_list))
@@ -623,7 +729,7 @@ def add_port():
     """Tambahkan port baru ke daftar."""
     try:
         # Create custom dialog for adding port
-        new_port, ok = QInputDialog.getInt(None, "Tambah Port", "Masukkan nomor port:", 80, 1, 65535)
+        new_port, ok = QInputDialog.getInt(None, get_text("port_add_title"), get_text("port_add_prompt"), 80, 1, 65535)
         
         if ok and new_port > 0:
             current_ports = ports_entry.text().strip()
@@ -638,14 +744,14 @@ def add_port():
                 
             ports_entry.setText(new_ports)
     except Exception as e:
-        QMessageBox.critical(None, "Error", f"Gagal menambahkan port: {str(e)}")
+        QMessageBox.critical(None, get_text("error_title"), get_text("error_add_port", error=str(e)))
 
 def reset_ports():
     """Reset daftar port ke default."""
     try:
         ports_entry.setText("all")
     except Exception as e:
-        QMessageBox.critical(None, "Error", f"Gagal mereset port: {str(e)}")
+        QMessageBox.critical(None, get_text("error_title"), get_text("error_reset_port", error=str(e)))
 
 def enable_port_forwarding():
     """Enable port forwarding"""
@@ -653,13 +759,13 @@ def enable_port_forwarding():
     listen_ip = listen_ip_entry.text().strip() or "0.0.0.0"
     
     if not ip:
-        QMessageBox.critical(None, "Error", "Silakan masukkan alamat IP target yang valid.")
+        QMessageBox.critical(None, get_text("error_title"), get_text("error_no_target_ip"))
         return
     
     # Dapatkan daftar port aktif menggunakan fungsi yang sudah ada
     active_ports = get_active_ports()
     if not active_ports:
-        QMessageBox.critical(None, "Error", "Tidak ada port yang dipilih untuk forwarding.")
+        QMessageBox.critical(None, get_text("error_title"), get_text("error_no_ports"))
         return
         
     # Periksa apakah XAMPP sedang berjalan dan hentikan jika diperlukan
@@ -720,44 +826,60 @@ def enable_port_forwarding():
             
             # Tampilkan pesan sukses tentang aturan firewall
             port_list = ", ".join([str(p) for p in active_ports])
-            QMessageBox.information(None, "Firewall Diatur", f"Aturan firewall berhasil ditambahkan untuk port: {port_list}")
+            QMessageBox.information(None, get_text("success_title"), f"Firewall rules successfully added for ports: {port_list}")
         
         # Tampilkan info jaringan untuk membantu troubleshoot
         hostname, ip_addresses, ipconfig = get_network_info()
         if ip_addresses and len(ip_addresses) > 1:
             all_ips = "\n".join([f"- {ip}" for ip in ip_addresses[2]])
-            network_info = f"Komputer Anda memiliki alamat IP berikut:\n{all_ips}\n\n" + \
-                          "Pastikan ponsel Anda berada di jaringan yang sama dan coba akses salah satu IP ini."
+            network_info = f"Your computer has the following IP addresses:\n{all_ips}\n\n" + \
+                          "Make sure your phone is on the same network and try to access one of these IPs."
+            if current_language == "id":
+                network_info = f"Komputer Anda memiliki alamat IP berikut:\n{all_ips}\n\n" + \
+                              "Pastikan ponsel Anda berada di jaringan yang sama dan coba akses salah satu IP ini."
         else:
-            network_info = "Tidak dapat mengambil informasi jaringan."
+            network_info = "Unable to retrieve network information." if current_language == "en" else "Tidak dapat mengambil informasi jaringan."
         
         # Format daftar port untuk tampilan status
         port_list_str = "/".join([str(p) for p in active_ports])
         
         # Tampilkan status forwarding
-        status_text = f"Status: Port Forwarding Diaktifkan\nForwarding {listen_ip}:{port_list_str} → {ip}:{port_list_str}"
+        status_text = get_text("status_enabled", listen_ip=listen_ip, target_ip=ip, ports=port_list_str)
         status_label.setText(status_text)
         status_label.setStyleSheet("color: #10b981; font-weight: bold; padding: 5px;")
         
         # Tampilkan aturan saat ini
         show_current_rules()
         
+        # Connection info dialog text
+        if current_language == "en":
+            connection_title = "Connection Info"
+            connection_text = f"Port forwarding enabled:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
+                            f"{network_info}\n\n" + \
+                            "If you cannot connect from your phone, check:\n" + \
+                            "1. Phone and PC are on the same network\n" + \
+                            "2. Try using the IPs listed above\n" + \
+                            "3. Windows Firewall may be blocking connections"
+        else:
+            connection_title = "Info Koneksi"
+            connection_text = f"Port forwarding diaktifkan:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
+                            f"{network_info}\n\n" + \
+                            "Jika Anda tidak dapat terhubung dari ponsel, periksa:\n" + \
+                            "1. Ponsel dan PC berada di jaringan yang sama\n" + \
+                            "2. Coba gunakan IP yang tercantum di atas\n" + \
+                            "3. Windows Firewall mungkin memblokir koneksi"
+        
         # Tampilkan info jaringan dalam dialog terpisah
         QMessageBox.information(
             None,
-            "Info Koneksi", 
-            f"Port forwarding diaktifkan:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" +
-            f"{network_info}\n\n" +
-            "Jika Anda tidak dapat terhubung dari ponsel, periksa:\n" +
-            "1. Ponsel dan PC berada di jaringan yang sama\n" +
-            "2. Coba gunakan IP yang tercantum di atas\n" +
-            "3. Windows Firewall mungkin memblokir koneksi"
+            connection_title, 
+            connection_text
         )
     except subprocess.CalledProcessError as e:
-        QMessageBox.critical(None, "Error", f"Gagal membuat port forwarding: {e.output.decode('utf-8', errors='ignore')}")
+        QMessageBox.critical(None, get_text("error_title"), f"Failed to create port forwarding: {e.output.decode('utf-8', errors='ignore')}")
         return False
     except Exception as e:
-        QMessageBox.critical(None, "Error", f"Gagal membuat port forwarding: {str(e)}")
+        QMessageBox.critical(None, get_text("error_title"), f"Failed to create port forwarding: {str(e)}")
         return False
         
     return True
@@ -826,9 +948,16 @@ def disable_port_forwarding():
         if active_ports:
             # Create message box with custom buttons
             msgbox = QMessageBox()
-            msgbox.setWindowTitle("Nonaktifkan Port Forwarding")
-            msgbox.setText("Anda dapat menonaktifkan hanya port yang dipilih atau semua port forwarding yang ada.\n\n")
-            msgbox.setInformativeText("- Klik Yes untuk menghapus HANYA port yang dipilih\n- Klik No untuk menghapus SEMUA port forwarding\n- Klik Cancel untuk membatalkan operasi")
+            
+            if current_language == "en":
+                msgbox.setWindowTitle("Disable Port Forwarding")
+                msgbox.setText("You can disable only selected ports or all existing port forwarding rules.\n\n")
+                msgbox.setInformativeText("- Click Yes to remove ONLY selected ports\n- Click No to remove ALL port forwarding\n- Click Cancel to abort operation")
+            else:
+                msgbox.setWindowTitle("Nonaktifkan Port Forwarding")
+                msgbox.setText("Anda dapat menonaktifkan hanya port yang dipilih atau semua port forwarding yang ada.\n\n")
+                msgbox.setInformativeText("- Klik Yes untuk menghapus HANYA port yang dipilih\n- Klik No untuk menghapus SEMUA port forwarding\n- Klik Cancel untuk membatalkan operasi")
+            
             msgbox.setIcon(QMessageBox.Question)
             
             yes_button = msgbox.addButton("Yes", QMessageBox.YesRole)
@@ -902,9 +1031,16 @@ def disable_port_forwarding():
             # Tidak ada port yang dipilih, hapus semua
             # Create message box with custom buttons
             msgbox = QMessageBox()
-            msgbox.setWindowTitle("Nonaktifkan Port Forwarding")
-            msgbox.setText("Anda akan menghapus SEMUA port forwarding yang ada.\n\n")
-            msgbox.setInformativeText("- Klik Yes untuk melanjutkan\n- Klik Cancel untuk membatalkan operasi")
+            
+            if current_language == "en":
+                msgbox.setWindowTitle("Disable Port Forwarding")
+                msgbox.setText("You will delete ALL existing port forwarding rules.\n\n")
+                msgbox.setInformativeText("- Click Yes to proceed\n- Click Cancel to abort operation")
+            else:
+                msgbox.setWindowTitle("Nonaktifkan Port Forwarding")
+                msgbox.setText("Anda akan menghapus SEMUA port forwarding yang ada.\n\n")
+                msgbox.setInformativeText("- Klik Yes untuk melanjutkan\n- Klik Cancel untuk membatalkan operasi")
+            
             msgbox.setIcon(QMessageBox.Question)
             
             yes_button = msgbox.addButton("Yes", QMessageBox.YesRole)
@@ -931,13 +1067,13 @@ def disable_port_forwarding():
         
         # Update status regardless of any possible errors above
         try:
-            status_label.setText("Status: Port Forwarding Dinonaktifkan")
+            status_label.setText(get_text("status_disabled"))
             status_label.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
             
             # Bersihkan dan perbarui tampilan aturan
             show_current_rules()
             
-            QMessageBox.information(None, "Berhasil", "Port forwarding telah dinonaktifkan")
+            QMessageBox.information(None, get_text("success_title"), get_text("success_disabled"))
         except Exception as e:
             print(f"Error updating UI after disabling port forwarding: {str(e)}")
             
@@ -945,7 +1081,7 @@ def disable_port_forwarding():
         print(f"Critical error in disable_port_forwarding: {str(e)}")
         # Try to show error message if possible
         try:
-            QMessageBox.critical(None, "Error", f"Gagal menonaktifkan port forwarding: {str(e)}")
+            QMessageBox.critical(None, get_text("error_title"), f"Failed to disable port forwarding: {str(e)}")
         except:
             print("Failed to show error messagebox")
         return False
@@ -986,7 +1122,7 @@ def create_help_tab(notebook):
     help_layout.setSpacing(15)
     
     # Create a styled header
-    header = QLabel("Panduan Pemecahan Masalah")
+    header = QLabel(get_text("troubleshoot_header"))
     header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
     help_layout.addWidget(header)
     
@@ -1015,8 +1151,97 @@ def create_help_tab(notebook):
         selection-background-color: #2563eb;
     """)
     
-    # Add the help content
-    help_content = """<html>
+    # Add the help content - we'll use language-specific content
+    help_content = get_help_content_for_language(current_language)
+    
+    help_text.setHtml(help_content)
+    help_container_layout.addWidget(help_text)
+    
+    scroll_area.setWidget(help_container)
+    help_layout.addWidget(scroll_area)
+    
+    # Add button for network info with styling
+    check_btn = QPushButton(get_text("check_network_btn"))
+    check_btn.setMinimumHeight(40)
+    check_btn.clicked.connect(show_network_info)
+    help_layout.addWidget(check_btn)
+    
+    return help_tab
+
+def get_help_content_for_language(lang):
+    """Get the appropriate help content HTML for the current language"""
+    if lang == "en":
+        return """<html>
+<style>
+    body { color: #1e293b; line-height: 1.6; background-color: #ffffff; }
+    h3 { color: #2563eb; margin-top: 20px; margin-bottom: 10px; }
+    li { margin-bottom: 8px; }
+    ul { margin-top: 5px; }
+    .port { color: #0d9488; font-family: monospace; }
+    .highlight { color: #ef4444; font-weight: bold; }
+    .example { color: #6d28d9; font-style: italic; }
+</style>
+<body>
+<h3>Mobile Connection Troubleshooting:</h3>
+
+<ol>
+    <li><b>Ensure Both Devices Are on the Same Network</b>
+        <ul>
+            <li>Your phone and PC must be connected to the same WiFi network</li>
+            <li>Home networks may isolate devices for security (check router settings)</li>
+        </ul>
+    </li>
+
+    <li><b>Check Windows Firewall</b>
+        <ul>
+            <li>Windows Firewall may block incoming connections</li>
+            <li>Temporarily disable Windows Firewall or add rules for the ports being used</li>
+        </ul>
+    </li>
+
+    <li><b>Try Different IP Addresses</b>
+        <ul>
+            <li>Use IP addresses displayed in the Connection Info dialog</li>
+            <li>Your PC may have multiple IP addresses - try each from your phone</li>
+        </ul>
+    </li>
+
+    <li><b>Test Local Access First</b>
+        <ul>
+            <li>Before trying from your phone, verify http://localhost works on your PC</li>
+            <li>Then try using the specific IP address in your PC browser</li>
+        </ul>
+    </li>
+
+    <li><b>Router Settings</b>
+        <ul>
+            <li>Some routers block internal network requests by default</li>
+            <li>Check if your router has AP isolation or client isolation enabled</li>
+        </ul>
+    </li>
+
+    <li><b>Use the Correct Protocol and Port</b>
+        <ul>
+            <li>Use <span class="highlight">http://</span> (not https://) when connecting to port 80</li>
+            <li>Include the port in the URL if using non-standard ports</li>
+            <li>Example: <span class="example">http://192.168.0.2:9072</span></li>
+        </ul>
+    </li>
+
+    <li><b>Port Format Information:</b>
+        <ul>
+            <li>Enter "<span class="port">all</span>" to use all default ports (80, 443, 9072)</li>
+            <li>Enter a single port number, e.g.: <span class="port">8080</span></li>
+            <li>Enter multiple ports separated by commas, e.g.: <span class="port">80, 443, 8080</span></li>
+            <li>Enter a port range, e.g.: <span class="port">8000-8010</span></li>
+            <li>Combination of the above: <span class="port">80, 443, 8000-8010, 9072</span></li>
+        </ul>
+    </li>
+</ol>
+</body>
+</html>"""
+    else:  # Indonesian (id)
+        return """<html>
 <style>
     body { color: #1e293b; line-height: 1.6; background-color: #ffffff; }
     h3 { color: #2563eb; margin-top: 20px; margin-bottom: 10px; }
@@ -1085,147 +1310,13 @@ def create_help_tab(notebook):
 </ol>
 </body>
 </html>"""
-    
-    help_text.setHtml(help_content)
-    help_container_layout.addWidget(help_text)
-    
-    scroll_area.setWidget(help_container)
-    help_layout.addWidget(scroll_area)
-    
-    # Add button for network info with styling
-    check_btn = QPushButton("Periksa Konfigurasi Jaringan")
-    check_btn.setMinimumHeight(40)
-    check_btn.clicked.connect(show_network_info)
-    help_layout.addWidget(check_btn)
-    
-    return help_tab
 
-def show_network_info(self):
-    """Show network information dialog"""
-    hostname, ip_addresses, ipconfig = get_network_info()
-    
-    # Create dialog
-    network_dialog = QDialog(self)
-    network_dialog.setWindowTitle("Informasi Jaringan")
-    network_dialog.setMinimumSize(700, 500)
-    
-    # Create layout
-    layout = QVBoxLayout(network_dialog)
-    layout.setContentsMargins(15, 15, 15, 15)
-    layout.setSpacing(10)
-    
-    # Add header
-    header = QLabel("Informasi Konfigurasi Jaringan")
-    header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
-    layout.addWidget(header)
-    
-    # Create sections container
-    sections = QWidget()
-    sections_layout = QVBoxLayout(sections)
-    sections_layout.setContentsMargins(0, 0, 0, 0)
-    sections_layout.setSpacing(15)
-    
-    # Hostname section
-    if hostname:
-        host_frame = QFrame()
-        host_frame.setObjectName("sectionFrame")
-        host_frame.setFrameShape(QFrame.StyledPanel)
-        host_layout = QVBoxLayout(host_frame)
-        
-        host_label = QLabel("Hostname:")
-        host_label.setStyleSheet("font-weight: bold;")
-        host_layout.addWidget(host_label)
-        
-        host_value = QLabel(hostname)
-        host_layout.addWidget(host_value)
-        
-        sections_layout.addWidget(host_frame)
-    
-    # IP Addresses section
-    if ip_addresses and len(ip_addresses) > 1:
-        ip_frame = QFrame()
-        ip_frame.setObjectName("sectionFrame")
-        ip_frame.setFrameShape(QFrame.StyledPanel)
-        ip_layout = QVBoxLayout(ip_frame)
-        
-        ip_label = QLabel("Alamat IP:")
-        ip_label.setStyleSheet("font-weight: bold;")
-        ip_layout.addWidget(ip_label)
-        
-        for ip in ip_addresses[2]:
-            ip_value = QLabel(f"• {ip}")
-            ip_layout.addWidget(ip_value)
-        
-        sections_layout.addWidget(ip_frame)
-    
-    # Firewall section
-    firewall_active, rules = check_firewall_status()
-    
-    firewall_frame = QFrame()
-    firewall_frame.setObjectName("sectionFrame")
-    firewall_frame.setFrameShape(QFrame.StyledPanel)
-    firewall_layout = QVBoxLayout(firewall_frame)
-    
-    firewall_header = QLabel("Status Firewall:")
-    firewall_header.setStyleSheet("font-weight: bold;")
-    firewall_layout.addWidget(firewall_header)
-    
-    firewall_status = QLabel(f"• {'Aktif' if firewall_active else 'Tidak Aktif'}")
-    firewall_status.setStyleSheet(f"color: {'#ef4444' if firewall_active else '#10b981'};")
-    firewall_layout.addWidget(firewall_status)
-    
-    if rules and "Port_Switcher" in rules:
-        rule_label = QLabel("Aturan Firewall untuk Port Forward:")
-        rule_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
-        firewall_layout.addWidget(rule_label)
-        
-        rules_text_edit = QTextEdit()
-        rules_text_edit.setReadOnly(True)
-        rules_text_edit.setMaximumHeight(100)
-        rules_text_edit.setText(rules)
-        firewall_layout.addWidget(rules_text_edit)
+def show_network_info(parent=None):
+    """Show network information dialog based on parent"""
+    if hasattr(app, 'window') and app.window:
+        app.window.show_network_info()
     else:
-        no_rules = QLabel("• Tidak ditemukan aturan khusus untuk PortLinker")
-        firewall_layout.addWidget(no_rules)
-    
-    sections_layout.addWidget(firewall_frame)
-    
-    # Active ports section
-    ports_frame = QFrame()
-    ports_frame.setObjectName("sectionFrame")
-    ports_frame.setFrameShape(QFrame.StyledPanel)
-    ports_layout = QVBoxLayout(ports_frame)
-    
-    ports_label = QLabel("Status Port Aktif:")
-    ports_label.setStyleSheet("font-weight: bold;")
-    ports_layout.addWidget(ports_label)
-    
-    active_ports = get_active_ports()
-    for port in active_ports:
-        is_used = check_port_in_use(port)
-        status = "Digunakan" if is_used else "Bebas"
-        color = "#ef4444" if is_used else "#10b981"
-        
-        port_status = QLabel(f"• Port {port}: {status}")
-        port_status.setStyleSheet(f"color: {color};")
-        ports_layout.addWidget(port_status)
-    
-    sections_layout.addWidget(ports_frame)
-    
-    # Scrollable area for all sections
-    scroll_area = QScrollArea()
-    scroll_area.setWidgetResizable(True)
-    scroll_area.setWidget(sections)
-    layout.addWidget(scroll_area)
-    
-    # Close button
-    close_button = QPushButton("Tutup")
-    close_button.setMinimumHeight(35)
-    close_button.clicked.connect(network_dialog.close)
-    layout.addWidget(close_button)
-    
-    # Show the dialog
-    network_dialog.exec()
+        QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
 
 # Fixed show_network_info function
 def show_network_info(parent=None):
@@ -1233,7 +1324,7 @@ def show_network_info(parent=None):
     if hasattr(app, 'window') and app.window:
         app.window.show_network_info()
     else:
-        QMessageBox.information(None, "Info", "Aplikasi belum siap untuk menampilkan informasi jaringan.")
+        QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
 
 # For compatibility with messagebox functions used in the original code
 def show_messagebox(title, message, icon=QMessageBox.Information, buttons=QMessageBox.Ok):
@@ -1292,7 +1383,7 @@ class PortLinkerApp(QMainWindow):
         super().__init__()
         
         # Setup the main window
-        self.setWindowTitle("PortLinker")
+        self.setWindowTitle(get_text("window_title"))
         self.setMinimumSize(750, 650)
         
         # Get local IP
@@ -1302,6 +1393,12 @@ class PortLinkerApp(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
+        
+        # Create language switcher button
+        self.language_btn = QPushButton(get_text("language_btn"))
+        self.language_btn.clicked.connect(self.toggle_language)
+        self.language_btn.setMaximumWidth(200)
+        self.main_layout.addWidget(self.language_btn, 0, Qt.AlignRight)
         
         # Create tabs
         self.tabs = QTabWidget()
@@ -1313,6 +1410,41 @@ class PortLinkerApp(QMainWindow):
         
         # Create status bar
         self.statusBar().showMessage("Ready")
+    
+    def toggle_language(self):
+        """Toggle between English and Indonesian languages"""
+        global current_language
+        # Switch language
+        current_language = "en" if current_language == "id" else "id"
+        
+        # Update UI text
+        self.update_ui_language()
+    
+    def update_ui_language(self):
+        """Update all UI elements with the current language"""
+        # Update window title
+        self.setWindowTitle(get_text("window_title"))
+        
+        # Update language button
+        self.language_btn.setText(get_text("language_btn"))
+        
+        # Update tab names
+        self.tabs.setTabText(0, get_text("tab_forwarding"))
+        self.tabs.setTabText(1, get_text("tab_troubleshoot"))
+        
+        # We need to recreate the tabs with new language
+        current_tab = self.tabs.currentIndex()
+        
+        # Remove old tabs
+        while self.tabs.count() > 0:
+            self.tabs.removeTab(0)
+        
+        # Recreate tabs with new language
+        self.setup_main_tab()
+        self.setup_help_tab()
+        
+        # Restore current tab
+        self.tabs.setCurrentIndex(current_tab)
     
     def setup_main_tab(self):
         """Create the main port forwarding tab"""
@@ -1328,7 +1460,7 @@ class PortLinkerApp(QMainWindow):
         main_layout.addLayout(form_layout)
         
         # Listen IP section
-        listen_ip_label = QLabel("Alamat IP Listen (IP PC Anda):")
+        listen_ip_label = QLabel(get_text("listen_ip_label"))
         form_layout.addWidget(listen_ip_label, 0, 0)
         
         listen_ip_widget = QWidget()
@@ -1343,12 +1475,12 @@ class PortLinkerApp(QMainWindow):
         listen_ip_entry.setMinimumWidth(250)
         listen_ip_layout.addWidget(listen_ip_entry)
         
-        detect_ip_btn = QPushButton("Deteksi IP")
+        detect_ip_btn = QPushButton(get_text("detect_ip_btn"))
         detect_ip_btn.clicked.connect(self.detect_ip)
         listen_ip_layout.addWidget(detect_ip_btn)
         
         # Target IP section
-        target_ip_label = QLabel("Alamat IP Target (IP WSL):")
+        target_ip_label = QLabel(get_text("target_ip_label"))
         form_layout.addWidget(target_ip_label, 1, 0)
         
         global ip_entry
@@ -1358,7 +1490,7 @@ class PortLinkerApp(QMainWindow):
         form_layout.addWidget(ip_entry, 1, 1)
         
         # Ports section
-        ports_label = QLabel("Port (all artinya 80, 443, 9072):")
+        ports_label = QLabel(get_text("ports_label"))
         form_layout.addWidget(ports_label, 2, 0)
         
         ports_widget = QWidget()
@@ -1376,10 +1508,11 @@ class PortLinkerApp(QMainWindow):
         add_port_btn = QPushButton("+")
         add_port_btn.setObjectName("addButton")
         add_port_btn.setMaximumWidth(30)
+        add_port_btn.setToolTip(get_text("add_port_tooltip"))
         add_port_btn.clicked.connect(add_port)
         ports_layout.addWidget(add_port_btn)
         
-        reset_ports_btn = QPushButton("Reset")
+        reset_ports_btn = QPushButton(get_text("reset_ports_btn"))
         reset_ports_btn.setObjectName("resetButton")
         reset_ports_btn.setMaximumWidth(60)
         reset_ports_btn.clicked.connect(reset_ports)
@@ -1401,17 +1534,17 @@ class PortLinkerApp(QMainWindow):
         buttons_layout.setSpacing(10)
         main_layout.addLayout(buttons_layout)
         
-        enable_btn = QPushButton("Aktifkan Port Forwarding")
+        enable_btn = QPushButton(get_text("enable_btn"))
         enable_btn.setObjectName("enableButton")
         enable_btn.clicked.connect(enable_port_forwarding)
         buttons_layout.addWidget(enable_btn)
         
-        disable_btn = QPushButton("Nonaktifkan Port Forwarding")
+        disable_btn = QPushButton(get_text("disable_btn"))
         disable_btn.setObjectName("disableButton")
         disable_btn.clicked.connect(disable_port_forwarding)
         buttons_layout.addWidget(disable_btn)
         
-        refresh_btn = QPushButton("Refresh Aturan")
+        refresh_btn = QPushButton(get_text("refresh_btn"))
         refresh_btn.clicked.connect(show_current_rules)
         buttons_layout.addWidget(refresh_btn)
         
@@ -1419,12 +1552,12 @@ class PortLinkerApp(QMainWindow):
         
         # Status label with styling
         global status_label
-        status_label = QLabel("Status: Tidak Diketahui")
+        status_label = QLabel(get_text("status_unknown"))
         status_label.setStyleSheet("font-weight: bold; padding: 5px;")
         main_layout.addWidget(status_label)
         
         # Rules section - with a nice header
-        rules_header = QLabel("Aturan Port Proxy Saat Ini:")
+        rules_header = QLabel(get_text("rules_header"))
         rules_header.setStyleSheet("font-weight: bold; font-size: 12pt; color: #1e293b; margin-top: 10px;")
         main_layout.addWidget(rules_header)
         
@@ -1437,7 +1570,7 @@ class PortLinkerApp(QMainWindow):
         main_layout.addWidget(rules_text)
         
         # Add the main tab to tabs
-        self.tabs.addTab(main_tab, "Port Forwarding")
+        self.tabs.addTab(main_tab, get_text("tab_forwarding"))
         
         # Initialize the current rules display
         show_current_rules()
@@ -1445,7 +1578,7 @@ class PortLinkerApp(QMainWindow):
     def setup_help_tab(self):
         """Create the help tab"""
         help_tab = create_help_tab(self.tabs)
-        self.tabs.addTab(help_tab, "Pemecahan Masalah")
+        self.tabs.addTab(help_tab, get_text("tab_troubleshoot"))
     
     def detect_ip(self):
         """Detect and update local IP address"""
@@ -1457,7 +1590,7 @@ class PortLinkerApp(QMainWindow):
         
         # Create dialog
         network_dialog = QDialog(self)
-        network_dialog.setWindowTitle("Informasi Jaringan")
+        network_dialog.setWindowTitle(get_text("network_dialog_title"))
         network_dialog.setMinimumSize(700, 500)
         
         # Create layout
@@ -1466,7 +1599,7 @@ class PortLinkerApp(QMainWindow):
         layout.setSpacing(10)
         
         # Add header
-        header = QLabel("Informasi Konfigurasi Jaringan")
+        header = QLabel(get_text("network_header"))
         header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
         layout.addWidget(header)
         
@@ -1483,7 +1616,7 @@ class PortLinkerApp(QMainWindow):
             host_frame.setFrameShape(QFrame.StyledPanel)
             host_layout = QVBoxLayout(host_frame)
             
-            host_label = QLabel("Hostname:")
+            host_label = QLabel(get_text("hostname_label"))
             host_label.setStyleSheet("font-weight: bold;")
             host_layout.addWidget(host_label)
             
@@ -1499,7 +1632,7 @@ class PortLinkerApp(QMainWindow):
             ip_frame.setFrameShape(QFrame.StyledPanel)
             ip_layout = QVBoxLayout(ip_frame)
             
-            ip_label = QLabel("Alamat IP:")
+            ip_label = QLabel(get_text("ip_addresses_label"))
             ip_label.setStyleSheet("font-weight: bold;")
             ip_layout.addWidget(ip_label)
             
@@ -1517,16 +1650,17 @@ class PortLinkerApp(QMainWindow):
         firewall_frame.setFrameShape(QFrame.StyledPanel)
         firewall_layout = QVBoxLayout(firewall_frame)
         
-        firewall_header = QLabel("Status Firewall:")
+        firewall_header = QLabel(get_text("firewall_status_label"))
         firewall_header.setStyleSheet("font-weight: bold;")
         firewall_layout.addWidget(firewall_header)
         
-        firewall_status = QLabel(f"• {'Aktif' if firewall_active else 'Tidak Aktif'}")
+        active_text = get_text("firewall_active") if firewall_active else get_text("firewall_inactive")
+        firewall_status = QLabel(f"• {active_text}")
         firewall_status.setStyleSheet(f"color: {'#ef4444' if firewall_active else '#10b981'};")
         firewall_layout.addWidget(firewall_status)
         
         if rules and "Port_Switcher" in rules:
-            rule_label = QLabel("Aturan Firewall untuk Port Forward:")
+            rule_label = QLabel(get_text("firewall_rules_label"))
             rule_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
             firewall_layout.addWidget(rule_label)
             
@@ -1536,7 +1670,7 @@ class PortLinkerApp(QMainWindow):
             rules_text_edit.setText(rules)
             firewall_layout.addWidget(rules_text_edit)
         else:
-            no_rules = QLabel("• Tidak ditemukan aturan khusus untuk PortLinker")
+            no_rules = QLabel(get_text("no_firewall_rules"))
             firewall_layout.addWidget(no_rules)
         
         sections_layout.addWidget(firewall_frame)
@@ -1547,14 +1681,14 @@ class PortLinkerApp(QMainWindow):
         ports_frame.setFrameShape(QFrame.StyledPanel)
         ports_layout = QVBoxLayout(ports_frame)
         
-        ports_label = QLabel("Status Port Aktif:")
+        ports_label = QLabel(get_text("active_ports_label"))
         ports_label.setStyleSheet("font-weight: bold;")
         ports_layout.addWidget(ports_label)
         
         active_ports = get_active_ports()
         for port in active_ports:
             is_used = check_port_in_use(port)
-            status = "Digunakan" if is_used else "Bebas"
+            status = get_text("port_in_use") if is_used else get_text("port_free")
             color = "#ef4444" if is_used else "#10b981"
             
             port_status = QLabel(f"• Port {port}: {status}")
@@ -1570,7 +1704,7 @@ class PortLinkerApp(QMainWindow):
         layout.addWidget(scroll_area)
         
         # Close button
-        close_button = QPushButton("Tutup")
+        close_button = QPushButton(get_text("close_btn"))
         close_button.setMinimumHeight(35)
         close_button.clicked.connect(network_dialog.close)
         layout.addWidget(close_button)
@@ -1584,11 +1718,15 @@ def show_network_info(parent=None):
     if hasattr(app, 'window') and app.window:
         app.window.show_network_info()
     else:
-        QMessageBox.information(None, "Info", "Aplikasi belum siap untuk menampilkan informasi jaringan.")
+        QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
 
 # Program utama
 if __name__ == "__main__":
     try:
+        # Check for language parameter
+        if len(sys.argv) > 1 and sys.argv[1].lower() in ["--en", "--english", "-en"]:
+            current_language = "en"
+        
         # Create the application
         app = QApplication(sys.argv)
         
@@ -1600,9 +1738,10 @@ if __name__ == "__main__":
         
         # Check admin privileges first
         if not is_admin():
-            # Rerun the program with admin rights
+            # Rerun the program with admin rights and preserve language choice
             script_path = os.path.abspath(sys.argv[0])
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script_path}"', None, 1)
+            lang_param = " --en" if current_language == "en" else ""
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script_path}"{lang_param}', None, 1)
             sys.exit()
         
         # Create and show the main window
@@ -1615,5 +1754,7 @@ if __name__ == "__main__":
     except Exception as e:
         # Tangkap semua error agar program tidak langsung tertutup
         error_msg = traceback.format_exc()
-        QMessageBox.critical(None, "Error Fatal", f"Terjadi error tak terduga:\n\n{error_msg}")
+        error_title = "Fatal Error" if current_language == "en" else "Error Fatal"
+        error_content = f"An unexpected error occurred:\n\n{error_msg}" if current_language == "en" else f"Terjadi error tak terduga:\n\n{error_msg}"
+        QMessageBox.critical(None, error_title, error_content)
         sys.exit(1)
