@@ -184,7 +184,9 @@ Jika Anda mengalami masalah yang tidak tercakup dalam dokumentasi ini, coba lang
 
 ## Pembuatan EXE
 cd "C:\Users\LEGION\Documents\Semua File Penting\PYTHON_PORT_SWITCH\"
-"C:\Program Files\Python313\Scripts\pyinstaller" --onefile --icon=icon.ico --version-file=version.txt PortLinker.py
+"C:\Program Files\Python313\Scripts\pyinstaller" --icon=icon.ico --version-file=version.txt --noconfirm --windowed --clean --name PortLinker PortLinker.py
+
+
 
 
 
