@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Built with PySide6](https://img.shields.io/badge/built%20with-PySide6-ff69b4)
 
-A powerful port forwarding utility for Windows that simplifies redirecting network traffic between interfaces, particularly useful for WSL (Windows Subsystem for Linux) connectivity.
+A port forwarding utility for Windows that simplifies redirecting network traffic between interfaces, particularly useful for WSL (Windows Subsystem for Linux) connectivity.
 
 ![PortLinker Screenshot](assets/Port.png)
 
