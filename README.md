@@ -27,6 +27,24 @@ PortLinker is a Windows application that makes it easy to set up port forwarding
 - **User-friendly UI**: Clean, modern interface with clear status indicators
 - **Troubleshooting Tools**: Built-in network diagnostics and connection testing
 
+## ⚠️ Antivirus Warning
+
+**Important:** Some antivirus software may flag PortLinker as suspicious or as a false positive. This is common for network utilities that need administrative privileges and modify system network settings.
+
+### Why This Happens:
+- PortLinker requires administrator privileges to modify Windows network settings
+- The application uses Windows `netsh` commands to configure port forwarding
+- It creates Windows Firewall rules to allow traffic through forwarded ports
+- PyInstaller-packaged executables are sometimes flagged by antivirus software
+
+### What To Do:
+1. **Add an exception** in your antivirus software for the PortLinker executable
+2. **Use the source code** version instead of the pre-built executable if you prefer
+3. **Verify the download** came from the official GitHub repository
+4. **Build from source** yourself if you want complete assurance
+
+PortLinker is a completely safe and open-source application. It contains no malicious code, and all of its operations are fully transparent, the source code is available for full transparency, and well-documented to the best of my ability.
+
 ## Requirements
 
 - Windows 10 or later
