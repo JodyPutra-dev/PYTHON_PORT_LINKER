@@ -64,7 +64,17 @@ TRANSLATIONS = {
         "app_not_ready": "Application is not ready to display network information.",
         "troubleshoot_header": "Troubleshooting Guide",
         "check_network_btn": "Check Network Configuration",
-        "language_btn": "Switch to Indonesian"
+        "language_btn": "Switch to Indonesian",
+        "connected_devices_label": "Connected Devices:",
+        "device_ip_header": "IP Address",
+        "device_mac_header": "MAC Address",
+        "device_hostname_header": "Hostname",
+        "refresh_devices_btn": "Refresh Devices",
+        "show_devices_btn": "Show Connected Devices",
+        "resolving_hostname": "Resolving...",
+        "resolve_hostnames_btn": "Resolve Hostnames",
+        "scanning_network": "Scanning network...",
+        "cancel_btn": "Cancel",
     },
     "id": {  # Indonesian
         "window_title": "PortLinker",
@@ -110,7 +120,17 @@ TRANSLATIONS = {
         "app_not_ready": "Aplikasi belum siap untuk menampilkan informasi jaringan.",
         "troubleshoot_header": "Panduan Pemecahan Masalah",
         "check_network_btn": "Periksa Konfigurasi Jaringan",
-        "language_btn": "Ganti ke Bahasa Inggris"
+        "language_btn": "Ganti ke Bahasa Inggris",
+        "connected_devices_label": "Perangkat Terhubung:",
+        "device_ip_header": "Alamat IP",
+        "device_mac_header": "Alamat MAC",
+        "device_hostname_header": "Hostname",
+        "refresh_devices_btn": "Perbarui Perangkat",
+        "show_devices_btn": "Tampilkan Perangkat Terhubung",
+        "resolving_hostname": "Mencari...",
+        "resolve_hostnames_btn": "Cari Hostnames",
+        "scanning_network": "Memindai jaringan...",
+        "cancel_btn": "Batal",
     }
 }
 
@@ -493,7 +513,7 @@ def stop_xampp():
                 msgbox.setText(f"Port {ports_str} digunakan oleh Python (kemungkinan aplikasi ini atau skrip Python lain).\n\n" +
                                "Apa yang ingin Anda lakukan?")
                 msgbox.setInformativeText("- Yes: Matikan proses Python yang menggunakan port\n" +
-                                         "- No: Coba atur port forwarding tetap\n" +
+                    "- No: Coba atur port forwarding tetap\n" +
                                          "- Cancel: Batalkan operasi")
                 msgbox.setIcon(QMessageBox.Question)
                 
@@ -832,9 +852,10 @@ def enable_port_forwarding():
         hostname, ip_addresses, ipconfig = get_network_info()
         if ip_addresses and len(ip_addresses) > 1:
             all_ips = "\n".join([f"- {ip}" for ip in ip_addresses[2]])
-            network_info = f"Your computer has the following IP addresses:\n{all_ips}\n\n" + \
-                          "Make sure your phone is on the same network and try to access one of these IPs."
-            if current_language == "id":
+            if current_language == "en":
+                network_info = f"Your computer has the following IP addresses:\n{all_ips}\n\n" + \
+                              "Make sure your phone is on the same network and try to access one of these IPs."
+            else:
                 network_info = f"Komputer Anda memiliki alamat IP berikut:\n{all_ips}\n\n" + \
                               "Pastikan ponsel Anda berada di jaringan yang sama dan coba akses salah satu IP ini."
         else:
@@ -867,7 +888,7 @@ def enable_port_forwarding():
                             "Jika Anda tidak dapat terhubung dari ponsel, periksa:\n" + \
                             "1. Ponsel dan PC berada di jaringan yang sama\n" + \
                             "2. Coba gunakan IP yang tercantum di atas\n" + \
-                            "3. Windows Firewall mungkin memblokir koneksi"
+            "3. Windows Firewall mungkin memblokir koneksi"
         
         # Tampilkan info jaringan dalam dialog terpisah
         QMessageBox.information(
@@ -934,7 +955,7 @@ def delete_all_port_switcher_firewall_rules():
         # Don't raise the exception, just return False to prevent crashes
         return False
         
-        
+
 def disable_port_forwarding():
     """Disable port forwarding"""
     try:
@@ -1066,16 +1087,15 @@ def disable_port_forwarding():
                     print(f"Failed to delete all firewall rules: {str(e)}")
         
         # Update status regardless of any possible errors above
-        try:
-            status_label.setText(get_text("status_disabled"))
-            status_label.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
-            
-            # Bersihkan dan perbarui tampilan aturan
-            show_current_rules()
-            
-            QMessageBox.information(None, get_text("success_title"), get_text("success_disabled"))
-        except Exception as e:
-            print(f"Error updating UI after disabling port forwarding: {str(e)}")
+        status_label.setText(get_text("status_disabled"))
+        status_label.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
+        
+        # Bersihkan dan perbarui tampilan aturan
+        show_current_rules()
+        
+        QMessageBox.information(None, get_text("success_title"), get_text("success_disabled"))
+    except Exception as e:
+        print(f"Error updating UI after disabling port forwarding: {str(e)}")
             
     except Exception as e:
         print(f"Critical error in disable_port_forwarding: {str(e)}")
@@ -1126,6 +1146,18 @@ def create_help_tab(notebook):
     header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
     help_layout.addWidget(header)
     
+    # Add button for connected devices
+    devices_btn = QPushButton(get_text("show_devices_btn"))
+    devices_btn.setMinimumHeight(40)
+    devices_btn.clicked.connect(lambda: show_connected_devices_dialog(notebook))
+    help_layout.addWidget(devices_btn)
+    
+    # Add button for network info with styling
+    check_btn = QPushButton(get_text("check_network_btn"))
+    check_btn.setMinimumHeight(40)
+    check_btn.clicked.connect(lambda: show_network_info())
+    help_layout.addWidget(check_btn)
+    
     # Scroll area for help content
     scroll_area = QScrollArea()
     scroll_area.setWidgetResizable(True)
@@ -1159,12 +1191,6 @@ def create_help_tab(notebook):
     
     scroll_area.setWidget(help_container)
     help_layout.addWidget(scroll_area)
-    
-    # Add button for network info with styling
-    check_btn = QPushButton(get_text("check_network_btn"))
-    check_btn.setMinimumHeight(40)
-    check_btn.clicked.connect(show_network_info)
-    help_layout.addWidget(check_btn)
     
     return help_tab
 
@@ -1311,6 +1337,329 @@ def get_help_content_for_language(lang):
 </body>
 </html>"""
 
+def get_connected_devices():
+    """Get a list of devices connected to the same network."""
+    connected_devices = []
+    try:
+        # Using arp -a to get the list of devices on the network
+        arp_result = subprocess.run(
+            ['arp', '-a'], 
+            shell=True, 
+            capture_output=True, 
+            text=True,
+            timeout=5  # Reduce timeout to prevent long hangs
+        )
+        
+        if arp_result.returncode == 0:
+            # Parse the output for IP and MAC addresses
+            for line in arp_result.stdout.splitlines():
+                line = line.strip()
+                if line and not line.startswith("Interface"):
+                    parts = [p for p in line.split() if p.strip()]
+                    if len(parts) >= 2:
+                        ip_address = parts[0]
+                        mac_address = parts[1]
+                        if mac_address != "ff-ff-ff-ff-ff-ff" and not ip_address.startswith("224."):
+                            # Skip hostname resolution for faster results
+                            device_info = {
+                                "ip": ip_address,
+                                "mac": mac_address,
+                                "hostname": ""
+                            }
+                            connected_devices.append(device_info)
+        
+        return connected_devices
+    except Exception as e:
+        print(f"Error getting connected devices: {str(e)}")
+        return []
+
+def resolve_single_hostname(device, devices_table, status_label, current, batch_total, 
+                           next_device_index, connected_devices, resolve_btn, cancel_btn,
+                           remaining, total_count):
+    """Resolve a single hostname and then process the next device."""
+    # Check if we should stop (cancel button's property will be set to True if canceled)
+    if cancel_btn.property("canceled") == True:
+        # Mark all remaining devices as N/A (skip resolution)
+        for i in range(next_device_index - 1, len(connected_devices)):
+            if i < len(connected_devices) and not connected_devices[i].get("hostname", ""):
+                connected_devices[i]["resolving"] = False
+        
+        # Update the table with all devices
+        update_devices_table(connected_devices, devices_table)
+        processed = current - 1
+        status_label.setText(f"Hostname resolution cancelled. Completed {processed} of {total_count} devices.")
+        resolve_btn.setEnabled(True)
+        cancel_btn.setEnabled(False)
+        return
+        
+    try:
+        # Show current progress out of TOTAL devices, not just the current batch
+        status_label.setText(f"Resolving hostname {current} of {batch_total} (total: {total_count})")
+        QApplication.processEvents()
+        
+        # Try to resolve hostname with a quick timeout
+        try:
+            hostname_result = subprocess.run(
+                ['ping', '-a', '-n', '1', '-w', '500', device["ip"]],  # 500ms timeout
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=0.8  # Shorter timeout
+            )
+            
+            # Extract hostname from ping output
+            if hostname_result.returncode == 0:
+                ping_output = hostname_result.stdout
+                hostname_match = re.search(r'Pinging ([^\s]+) \[', ping_output)
+                if hostname_match:
+                    hostname = hostname_match.group(1)
+                    device["hostname"] = hostname
+        except:
+            pass  # Just skip on error
+        
+        # Clear resolving flag
+        device["resolving"] = False
+        
+        # Update the table with the single device update
+        update_devices_table(connected_devices, devices_table)
+        
+        # Process next device if there are more in this batch
+        if next_device_index < batch_total:
+            # Process next device after a small delay
+            QTimer.singleShot(50, lambda: resolve_single_hostname(
+                connected_devices[next_device_index], 
+                devices_table, 
+                status_label,
+                current + 1, 
+                batch_total,
+                next_device_index + 1,
+                connected_devices,
+                resolve_btn,
+                cancel_btn,
+                remaining,
+                total_count
+            ))
+        else:
+            # This batch is done
+            processed = min(batch_total, total_count)
+            
+            if remaining > 0:
+                # If there are more devices to process, offer to continue
+                status_label.setText(f"Completed {processed} of {total_count} devices. There are {remaining} more devices.")
+                
+                # Enable resolve button to process the next batch
+                resolve_btn.setText("Resolve Next Batch")
+                if current_language == "id":
+                    resolve_btn.setText("Cari Batch Berikutnya")
+                resolve_btn.setEnabled(True)
+            else:
+                # All done
+                status_label.setText(f"Hostname resolution completed for {processed} devices.")
+                
+                # Reset resolve button text
+                resolve_btn.setText("Resolve Hostnames")
+                if current_language == "id":
+                    resolve_btn.setText("Cari Hostnames")
+                resolve_btn.setEnabled(True)
+                
+            cancel_btn.setEnabled(False)
+            
+    except Exception as e:
+        print(f"Error resolving single hostname: {str(e)}")
+        
+        # Try to continue with next device if there are more in this batch
+        if next_device_index < batch_total:
+            QTimer.singleShot(50, lambda: resolve_single_hostname(
+                connected_devices[next_device_index], 
+                devices_table, 
+                status_label,
+                current + 1, 
+                batch_total,
+                next_device_index + 1,
+                connected_devices,
+                resolve_btn,
+                cancel_btn,
+                remaining,
+                total_count
+            ))
+        else:
+            resolve_btn.setEnabled(True)
+            cancel_btn.setEnabled(False)
+
+def resolve_hostnames_clicked(devices_table, status_label, resolve_btn, cancel_btn):
+    """Handle click on resolve hostnames button"""
+    try:
+        # Get devices from the table property
+        connected_devices = devices_table.property("devices")
+        if not connected_devices:
+            return
+        
+        # Count how many devices need resolution
+        to_resolve = [d for d in connected_devices if not d.get("hostname")]
+        if not to_resolve:
+            status_label.setText("All hostnames already resolved.")
+            return
+            
+        # Disable the button during resolution
+        resolve_btn.setEnabled(False)
+        
+        # Reset and enable cancel button
+        cancel_btn.setProperty("canceled", False)
+        cancel_btn.setEnabled(True)
+        
+        # Only resolve a limited number of devices (max 15) to prevent hanging
+        devices_to_resolve = to_resolve[:15]
+        remaining = len(to_resolve) - 15
+        
+        # Show the TOTAL count, not just the ones we're resolving
+        total_to_resolve = len(to_resolve)
+        status_label.setText(f"Resolving hostnames for {len(devices_to_resolve)} out of {total_to_resolve} devices")
+        if remaining > 0:
+            status_label.setText(status_label.text() + f" ({remaining} will be processed in the next batch)")
+        
+        # Mark selected devices as resolving for UI feedback
+        for device in devices_to_resolve:
+            device["resolving"] = True
+        
+        # Update table to show "Resolving..." status
+        update_devices_table(connected_devices, devices_table)
+        
+        # Need to process events to show the updated UI
+        QApplication.processEvents()
+        
+        # Start resolving first device, which will chain to others
+        if devices_to_resolve:
+            QTimer.singleShot(100, lambda: resolve_single_hostname(
+                devices_to_resolve[0],
+                devices_table,
+                status_label,
+                1,
+                len(devices_to_resolve),
+                1,  # Start with second device next
+                connected_devices,
+                resolve_btn,
+                cancel_btn,
+                remaining,
+                total_to_resolve
+            ))
+        
+    except Exception as e:
+        status_label.setText(f"Error resolving hostnames: {str(e)}")
+        status_label.setStyleSheet("color: #ef4444;")
+        resolve_btn.setEnabled(True)
+        cancel_btn.setEnabled(False)
+        print(f"Error in resolve_hostnames_clicked: {str(e)}")
+
+def show_connected_devices_dialog(parent=None):
+    """Show a dialog with only connected devices"""
+    if not parent and hasattr(app, 'window'):
+        parent = app.window
+    
+    # Create dialog first so we can show it while loading
+    devices_dialog = QDialog(parent)
+    devices_dialog.setWindowTitle(get_text("connected_devices_label"))
+    devices_dialog.setMinimumSize(600, 400)
+    
+    # Create layout
+    layout = QVBoxLayout(devices_dialog)
+    layout.setContentsMargins(15, 15, 15, 15)
+    layout.setSpacing(10)
+    
+    # Add header
+    header = QLabel(get_text("connected_devices_label"))
+    header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
+    layout.addWidget(header)
+    
+    # Create a status label for loading indication
+    status_label = QLabel("Loading devices...")
+    status_label.setStyleSheet("color: #4b5563; font-style: italic;")
+    layout.addWidget(status_label)
+    
+    # Create a table for connected devices
+    devices_table = QTextEdit()
+    devices_table.setReadOnly(True)
+    layout.addWidget(devices_table)
+    
+    # Button layout
+    button_layout = QHBoxLayout()
+    button_layout.setSpacing(10)
+    
+    # Add refresh button
+    refresh_btn = QPushButton(get_text("refresh_devices_btn"))
+    refresh_btn.clicked.connect(lambda: refresh_devices_dialog(devices_table, status_label, resolve_btn, cancel_btn))
+    button_layout.addWidget(refresh_btn)
+    
+    # Add resolve hostnames button
+    resolve_btn = QPushButton("Resolve Hostnames")
+    if current_language == "id":
+        resolve_btn.setText("Cari Hostnames")
+    resolve_btn.setEnabled(False)  # Initially disabled until we have devices
+    button_layout.addWidget(resolve_btn)
+    
+    # Add cancel button for hostname resolution
+    cancel_btn = QPushButton("Cancel")
+    if current_language == "id":
+        cancel_btn.setText("Batal")
+    cancel_btn.setEnabled(False)  # Initially disabled until resolving
+    cancel_btn.setProperty("canceled", False)  # Property to track cancel state
+    cancel_btn.clicked.connect(lambda: cancel_btn.setProperty("canceled", True))
+    button_layout.addWidget(cancel_btn)
+    
+    # Connect resolve button now that we have cancel_btn
+    resolve_btn.clicked.connect(lambda: resolve_hostnames_clicked(devices_table, status_label, resolve_btn, cancel_btn))
+    
+    # Add close button
+    close_button = QPushButton(get_text("close_btn"))
+    close_button.setMinimumHeight(35)
+    close_button.clicked.connect(devices_dialog.close)
+    button_layout.addWidget(close_button)
+    
+    layout.addLayout(button_layout)
+    
+    # Show the dialog immediately
+    devices_dialog.show()
+    
+    # Start searching for devices (non-blocking)
+    QTimer.singleShot(100, lambda: refresh_devices_dialog(devices_table, status_label, resolve_btn, cancel_btn))
+    
+    # Keep the dialog open
+    devices_dialog.exec()
+
+def refresh_devices_dialog(devices_table, status_label, resolve_btn, cancel_btn):
+    """Refresh the devices table with loading indicator"""
+    try:
+        status_label.setText("Scanning network for devices...")
+        status_label.setStyleSheet("color: #4b5563; font-style: italic;")
+        devices_table.setHtml("<p>Scanning network...</p>")
+        
+        # Need to process events to show the loading message
+        QApplication.processEvents()
+        
+        # Get devices
+        connected_devices = get_connected_devices()
+        
+        if connected_devices:
+            # Update table
+            update_devices_table(connected_devices, devices_table)
+            status_label.setText(f"Found {len(connected_devices)} devices. Use 'Resolve Hostnames' to get device names.")
+            resolve_btn.setEnabled(True)
+            
+            # Store devices in the table for later use
+            devices_table.setProperty("devices", connected_devices)
+        else:
+            devices_table.setHtml("<p>No devices found on network.</p>")
+            status_label.setText("No devices found.")
+            resolve_btn.setEnabled(False)
+            
+        # Reset and disable cancel button
+        cancel_btn.setProperty("canceled", False)
+        cancel_btn.setEnabled(False)
+            
+    except Exception as e:
+        status_label.setText(f"Error scanning: {str(e)}")
+        status_label.setStyleSheet("color: #ef4444;")
+        print(f"Error in refresh_devices_dialog: {str(e)}")
+
 def show_network_info(parent=None):
     """Show network information dialog based on parent"""
     if hasattr(app, 'window') and app.window:
@@ -1318,64 +1667,38 @@ def show_network_info(parent=None):
     else:
         QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
 
-# Fixed show_network_info function
-def show_network_info(parent=None):
-    """Show network information dialog based on parent"""
-    if hasattr(app, 'window') and app.window:
-        app.window.show_network_info()
-    else:
-        QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
-
-# For compatibility with messagebox functions used in the original code
-def show_messagebox(title, message, icon=QMessageBox.Information, buttons=QMessageBox.Ok):
-    msg = QMessageBox()
-    msg.setWindowTitle(title)
-    msg.setText(message)
-    msg.setIcon(icon)
-    msg.setStandardButtons(buttons)
-    return msg.exec()
-
-# Override original functions
-def messagebox_showinfo(title, message):
-    return show_messagebox(title, message, QMessageBox.Information)
-
-def messagebox_showwarning(title, message):
-    return show_messagebox(title, message, QMessageBox.Warning)
-
-def messagebox_showerror(title, message):
-    return show_messagebox(title, message, QMessageBox.Critical)
-
-def messagebox_askyesno(title, message):
-    result = show_messagebox(title, message, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
-    return result == QMessageBox.Yes
-
-def messagebox_askyesnocancel(title, message):
-    msgbox = QMessageBox()
-    msgbox.setWindowTitle(title)
-    msgbox.setText(message)
-    msgbox.setIcon(QMessageBox.Question)
-    
-    yes_button = msgbox.addButton("Yes", QMessageBox.YesRole)
-    no_button = msgbox.addButton("No", QMessageBox.NoRole)
-    cancel_button = msgbox.addButton("Cancel", QMessageBox.RejectRole)
-    
-    result = msgbox.exec()
-    
-    if msgbox.clickedButton() == yes_button:
-        return True
-    elif msgbox.clickedButton() == no_button:
-        return False
-    else:  # Cancel
-        return None
-
-# Create compatibility layer for original code
-messagebox = type('messagebox', (), {
-    'showinfo': messagebox_showinfo,
-    'showwarning': messagebox_showwarning,
-    'showerror': messagebox_showerror,
-    'askyesno': messagebox_askyesno,
-    'askyesnocancel': messagebox_askyesnocancel,
-})
+def update_devices_table(connected_devices, devices_table):
+    """Update the devices table with the current device list"""
+    try:
+        # Format the table
+        table_html = "<table border='0' cellspacing='2' cellpadding='4' width='100%'>"
+        table_html += "<tr style='background-color:#e2e8f0;'>"
+        table_html += f"<th align='left'>{get_text('device_ip_header')}</th>"
+        table_html += f"<th align='left'>{get_text('device_mac_header')}</th>"
+        table_html += f"<th align='left'>{get_text('device_hostname_header')}</th>"
+        table_html += "</tr>"
+        
+        for i, device in enumerate(connected_devices):
+            bg_color = "#f1f5f9" if i % 2 == 1 else "#ffffff"
+            table_html += f"<tr style='background-color:{bg_color};'>"
+            table_html += f"<td>{device['ip']}</td>"
+            table_html += f"<td>{device['mac']}</td>"
+            
+            hostname = device.get('hostname', '')
+            if not hostname and device.get('resolving', False):
+                hostname = "Resolving..."
+            elif not hostname:
+                hostname = "N/A"
+                
+            table_html += f"<td>{hostname}</td>"
+            table_html += "</tr>"
+        
+        table_html += "</table>"
+        devices_table.setHtml(table_html)
+        
+    except Exception as e:
+        print(f"Error updating devices table: {str(e)}")
+        devices_table.setHtml(f"<p>Error displaying devices: {str(e)}</p>")
 
 # Create the main application class
 class PortLinkerApp(QMainWindow):
@@ -1574,7 +1897,7 @@ class PortLinkerApp(QMainWindow):
         
         # Initialize the current rules display
         show_current_rules()
-    
+        
     def setup_help_tab(self):
         """Create the help tab"""
         help_tab = create_help_tab(self.tabs)
@@ -1711,14 +2034,6 @@ class PortLinkerApp(QMainWindow):
         
         # Show the dialog
         network_dialog.exec()
-
-# Fixed show_network_info function
-def show_network_info(parent=None):
-    """Show network information dialog based on parent"""
-    if hasattr(app, 'window') and app.window:
-        app.window.show_network_info()
-    else:
-        QMessageBox.information(None, get_text("network_dialog_title"), get_text("app_not_ready"))
 
 # Program utama
 if __name__ == "__main__":

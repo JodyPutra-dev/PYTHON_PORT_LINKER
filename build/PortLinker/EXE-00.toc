@@ -5,7 +5,7 @@
  True,
  ['C:\\Users\\LEGION\\Documents\\Semua File '
   'Penting\\PYTHON_PORT_SWITCH\\icon.ico'],
- versioninfo.VSVersionInfo(ffi=versioninfo.FixedFileInfo(filevers=(4, 0, 0, 0), prodvers=(4, 0, 0, 0), mask=0x3f, flags=0x0, OS=0x40004, fileType=1, subtype=0x0, date=(0, 0)), kids=[versioninfo.StringFileInfo([versioninfo.StringTable('040904B0', [versioninfo.StringStruct('CompanyName', 'Exp9072'), versioninfo.StringStruct('FileDescription', 'PortLingker'), versioninfo.StringStruct('FileVersion', '4.0.0.0'), versioninfo.StringStruct('InternalName', 'port_switcher'), versioninfo.StringStruct('OriginalFilename', 'PortLingker.exe'), versioninfo.StringStruct('ProductName', 'PortLingker'), versioninfo.StringStruct('ProductVersion', '4.0.0.0')])]), versioninfo.VarFileInfo([versioninfo.VarStruct('Translation', [1033, 1200])])]),
+ versioninfo.VSVersionInfo(ffi=versioninfo.FixedFileInfo(filevers=(4, 1, 0, 0), prodvers=(4, 1, 0, 0), mask=0x3f, flags=0x0, OS=0x40004, fileType=1, subtype=0x0, date=(0, 0)), kids=[versioninfo.StringFileInfo([versioninfo.StringTable('040904B0', [versioninfo.StringStruct('CompanyName', 'Exp9072'), versioninfo.StringStruct('FileDescription', 'PortLingker'), versioninfo.StringStruct('FileVersion', '4.1.0.0'), versioninfo.StringStruct('InternalName', 'port_switcher'), versioninfo.StringStruct('OriginalFilename', 'PortLingker.exe'), versioninfo.StringStruct('ProductName', 'PortLingker'), versioninfo.StringStruct('ProductVersion', '4.1.0.0')])]), versioninfo.VarFileInfo([versioninfo.VarStruct('Translation', [1033, 1200])])]),
  False,
  False,
  b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<assembly xmlns='
@@ -77,7 +77,7 @@
  [],
  False,
  False,
- 1744944536,
+ 1745373075,
  [('runw.exe',
    'C:\\Program '
    'Files\\Python313\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',
