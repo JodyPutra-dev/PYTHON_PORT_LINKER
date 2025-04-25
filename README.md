@@ -154,12 +154,3 @@ PortLinker uses Windows' built-in `netsh interface portproxy` commands to create
 ## License
 
 This software is provided as-is under the MIT License. See the LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Credits
-
-Developed by Muhammad Jody Putra Islami alias Exp9072
- 
