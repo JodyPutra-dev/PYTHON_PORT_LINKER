@@ -1,0 +1,25 @@
+# Global options
+{
+    admin off
+    local_certs
+    auto_https disable_redirects
+    log {
+        output file "C:/Users/LEGION/Documents/Semua File Penting/PYTHON_PORT_SWITCH/caddy/logs/caddy.log"
+        format json
+        level INFO
+    }
+}
+
+# Default fallback for unknown requests on standard ports
+:80, :443 {
+    respond "Not Found" 404
+}
+
+# Serve HTTPS on port 9072 and reverse proxy to your remote HTTPS backend
+https://10.20.50.195:9072 {
+    reverse_proxy https://172.29.156.41 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
