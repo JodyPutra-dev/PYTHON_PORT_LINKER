@@ -1,3 +1,7 @@
+# PortLinker - A port forwarding and reverse proxy tool
+# Copyright (c) 2025 Exp9072
+# Licensed under the MIT License. See the LICENSE file in the project root for full license information.
+
 import tkinter as tk
 from tkinter import messagebox, ttk, simpledialog
 import subprocess

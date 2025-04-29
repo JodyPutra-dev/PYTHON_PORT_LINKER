@@ -1,3 +1,7 @@
+# PortLinker - A port forwarding and reverse proxy tool
+# Copyright (c) 2025 Exp9072
+# Licensed under the MIT License. See the LICENSE file in the project root for full license information.
+
 import os
 import subprocess
 import sys
@@ -229,30 +233,62 @@ class CaddyManager:
     }}
 }}
 
-# Rate limiting configuration
+# Rate limiting configuration - applied to ALL requests
 (rate_limit) {{
     rate_limit {{
         zone requests {{
             key {{remote_ip}}
-            requests 100
+            requests 30
             window 1m
-            burst 50
+            burst 10
         }}
     }}
 }}
 
-# Default fallback for unknown requests on standard ports
-:80, :443 {{
-    respond "Not Found" 404
+# Security headers
+(security_headers) {{
+    header {{
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+        # Enable XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'"
+    }}
 }}
 
-# Serve HTTPS on port 9072 and reverse proxy to your remote HTTPS backend
-https://{listen_ip}:9072 {{
+# Main server block - handles ALL traffic
+{{
+    # Apply rate limiting to ALL requests
     import rate_limit
+    import security_headers
     
-    reverse_proxy https://{target_ip} {{
-        transport http {{
-            tls_insecure_skip_verify
+    # Handle HTTP (port 80) with redirect to HTTPS
+    :80 {{
+        redir https://{{host}}:443{{uri}} permanent
+    }}
+    
+    # Handle HTTPS (port 443)
+    :443 {{
+        reverse_proxy https://{target_ip} {{
+            transport http {{
+                tls_insecure_skip_verify
+            }}
+        }}
+    }}
+    
+    # Handle port 9072
+    :9072 {{
+        reverse_proxy https://{target_ip} {{
+            transport http {{
+                tls_insecure_skip_verify
+            }}
         }}
     }}
 }}
