@@ -11,6 +11,27 @@ import os
 import time
 import socket
 import traceback
+import rsa
+
+def load_license(path="license.lic"):
+    try:
+        with open(path, "rb") as f:
+            content = f.read().split(b"\n", 1)
+            user_data = content[0].decode()
+            signature = content[1]
+            return user_data, signature
+    except Exception as e:
+        return None, None
+
+def validate_license(user_data, signature, pub_key_path="public.pem"):
+    try:
+        with open(pub_key_path, "rb") as f:
+            public_key = rsa.PublicKey.load_pkcs1(f.read())
+        rsa.verify(user_data.encode(), signature, public_key)
+        return True
+    except Exception:
+        return False
+
 
 # Daftar port default
 DEFAULT_PORTS = [80, 443, 9072]
@@ -735,6 +756,12 @@ def show_network_info():
 # Program utama dengan penanganan error
 if __name__ == "__main__":
     try:
+        # === LICENSE VALIDATION ===
+        user_data, signature = load_license()
+        if not user_data or not validate_license(user_data, signature):
+            messagebox.showerror("Lisensi Tidak Valid", "Lisensi tidak ditemukan atau tidak valid.\nSilakan hubungi developer.")
+            sys.exit(1)
+        
         # Build UI
         root = tk.Tk()
         root.title("Pengatur Port Forwarding")

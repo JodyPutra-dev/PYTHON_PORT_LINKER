@@ -85,25 +85,85 @@ class CaddyManager:
             max_log_files: Maximum number of log files to keep (caddy.log, caddy.log.1, etc.)
             max_archive_files: Maximum number of archived log files (.7z files)
         """
-        self.caddy_dir = Path(caddy_dir).resolve()
-        self.caddy_exe = self.caddy_dir / "caddy_windows_amd64.exe"
-        self.caddy_config = self.caddy_dir / "Caddyfile"
-        self.log_dir = self.caddy_dir / "logs"
-        self.log_file = self.log_dir / "caddy.log"
-        self.max_log_files = max_log_files
-        self.max_archive_files = max_archive_files
-        self.process = None
-        self.job_handle = None
-        
-        # Create logs directory if it doesn't exist
-        self.log_dir.mkdir(exist_ok=True)
-        
-        # Configure logger for this module
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger("CaddyManager")
+        # Convert to absolute path and normalize
+        try:
+            # Get the absolute path of the workspace
+            workspace_dir = Path(os.getcwd()).absolute()
+            print(f"Workspace directory: {workspace_dir}")
+            
+            # Convert caddy_dir to absolute path
+            self.caddy_dir = (workspace_dir / caddy_dir).resolve()
+            print(f"Caddy directory: {self.caddy_dir}")
+            
+            # Set up other paths
+            self.caddy_exe = self.caddy_dir / "caddy_windows_amd64.exe"
+            self.caddy_config = self.caddy_dir / "Caddyfile"
+            self.log_dir = self.caddy_dir / "logs"
+            self.log_file = self.log_dir / "caddy.log"
+            
+            print(f"Caddy executable: {self.caddy_exe}")
+            print(f"Caddy config: {self.caddy_config}")
+            print(f"Log directory: {self.log_dir}")
+            print(f"Log file: {self.log_file}")
+            
+            # Verify directories and files
+            if not self.caddy_dir.exists():
+                print(f"Creating Caddy directory: {self.caddy_dir}")
+                self.caddy_dir.mkdir(parents=True, exist_ok=True)
+            
+            if not self.log_dir.exists():
+                print(f"Creating logs directory: {self.log_dir}")
+                self.log_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Verify Caddy executable
+            if not self.caddy_exe.exists():
+                raise FileNotFoundError(
+                    f"Caddy executable not found at: {self.caddy_exe}\n"
+                    "Please make sure:\n"
+                    f"1. The file 'caddy_windows_amd64.exe' exists in {self.caddy_dir}\n"
+                    "2. You have downloaded the correct version of Caddy for Windows\n"
+                    "3. The file has not been renamed"
+                )
+            
+            # Verify executable permissions
+            if not os.access(str(self.caddy_exe), os.X_OK):
+                print(f"Warning: Caddy executable might not have execute permissions: {self.caddy_exe}")
+            
+            # Initialize other variables
+            self.max_log_files = max_log_files
+            self.max_archive_files = max_archive_files
+            self.process = None
+            self.job_handle = None
+            
+            # Configure logging
+            logging.basicConfig(
+                level=logging.INFO,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                handlers=[
+                    logging.FileHandler(self.log_file),
+                    logging.StreamHandler()
+                ]
+            )
+            self.logger = logging.getLogger("CaddyManager")
+            
+            # Test Caddy executable
+            print("\nTesting Caddy executable...")
+            test_result = subprocess.run(
+                [str(self.caddy_exe), "version"],
+                capture_output=True,
+                text=True,
+                cwd=str(self.caddy_dir)
+            )
+            
+            if test_result.returncode == 0:
+                print(f"Caddy version: {test_result.stdout.strip()}")
+            else:
+                print(f"Error testing Caddy: {test_result.stderr}")
+                raise RuntimeError(f"Failed to run Caddy: {test_result.stderr}")
+                
+        except Exception as e:
+            print(f"Error initializing CaddyManager: {e}")
+            raise
 
     def _create_job_object(self):
         """Create a Windows Job Object to automatically terminate child processes"""
@@ -303,26 +363,60 @@ class CaddyManager:
     def start_caddy(self):
         """Start the Caddy server using the generated Caddyfile"""
         if self.process and self.process.poll() is None:
-            self.logger.warning("Caddy is already running. Stopping it first.")
+            print("Caddy is already running. Stopping it first.")
             self.stop_caddy()
             
         # Rotate logs before starting
         self.rotate_logs()
         
         try:
+            # Print current working directory and paths
+            print("\nStarting Caddy:")
+            print(f"Current working directory: {os.getcwd()}")
+            print(f"Caddy directory: {self.caddy_dir}")
+            print(f"Caddy executable: {self.caddy_exe}")
+            print(f"Caddy config: {self.caddy_config}")
+            
+            # Verify Caddy executable exists and is accessible
+            if not self.caddy_exe.exists():
+                print(f"ERROR: Caddy executable not found at: {self.caddy_exe}")
+                return False
+                
+            if not os.access(str(self.caddy_exe), os.X_OK):
+                print(f"ERROR: Caddy executable is not executable: {self.caddy_exe}")
+                return False
+
+            # Verify Caddyfile exists and is readable
+            if not self.caddy_config.exists():
+                print(f"ERROR: Caddyfile not found at: {self.caddy_config}")
+                return False
+
+            # Print the Caddyfile content for debugging
+            with open(self.caddy_config, 'r') as f:
+                caddyfile_content = f.read()
+                print("\nCaddyfile content:")
+                print(caddyfile_content)
+                print("\n")
+                
             # Start Caddy with the Caddyfile
-            self.process = subprocess.Popen(
-                [
-                    str(self.caddy_exe),
-                    "run",
-                    "--config", str(self.caddy_config)
-                ],
-                cwd=str(self.caddy_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
-            )
+            print("\nStarting Caddy server...")
+            try:
+                self.process = subprocess.Popen(
+                    [
+                        str(self.caddy_exe),
+                        "run",
+                        "--config", str(self.caddy_config),
+                        "--adapter", "caddyfile"
+                    ],
+                    cwd=str(self.caddy_dir),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+                )
+            except Exception as e:
+                print(f"Error starting Caddy: {e}")
+                return False
             
             # Create a job object with proper error handling
             try:
@@ -330,58 +424,88 @@ class CaddyManager:
                 if self.job_handle:
                     success = self._assign_process_to_job(self.process.pid)
                     if not success:
-                        self.logger.warning("Failed to assign Caddy process to job object")
+                        print("Warning: Failed to assign Caddy process to job object")
             except Exception as e:
-                self.logger.error(f"Error creating job object: {e}")
+                print(f"Error creating job object: {e}")
             
             # Start a thread to capture output and write to log file
             def log_output():
                 with open(self.log_file, 'a') as log:
                     while self.process and self.process.poll() is None:
-                        line = self.process.stdout.readline()
-                        if line:
-                            log.write(f"{datetime.datetime.now().isoformat()}: {line}")
+                        # Read both stdout and stderr
+                        stdout_line = self.process.stdout.readline()
+                        stderr_line = self.process.stderr.readline()
+                        
+                        if stdout_line:
+                            print(f"[STDOUT] {stdout_line}", end='')
+                            log.write(f"{datetime.datetime.now().isoformat()}: [STDOUT] {stdout_line}")
                             log.flush()
-                        else:
+                        if stderr_line:
+                            print(f"[STDERR] {stderr_line}", end='')
+                            log.write(f"{datetime.datetime.now().isoformat()}: [STDERR] {stderr_line}")
+                            log.flush()
+                            
+                        if not stdout_line and not stderr_line:
                             time.sleep(0.1)
             
             threading.Thread(target=log_output, daemon=True).start()
             
-            # Give Caddy a moment to start and check if it's running
-            time.sleep(2)
+            # Give Caddy more time to start and check if it's running
+            time.sleep(5)
             
             # Check if process is still running after startup
             if self.process.poll() is not None:
                 exitcode = self.process.poll()
-                self.logger.error(f"Caddy failed to start (exit code {exitcode})")
+                print(f"Caddy failed to start (exit code {exitcode})")
+                
                 # Try to read any error output
                 try:
-                    error_output = self.process.stdout.read()
-                    if error_output:
-                        self.logger.error(f"Caddy error output: {error_output}")
-                except:
-                    pass
+                    stdout_output = self.process.stdout.read()
+                    stderr_output = self.process.stderr.read()
+                    
+                    if stdout_output:
+                        print(f"Caddy stdout output: {stdout_output}")
+                    if stderr_output:
+                        print(f"Caddy stderr output: {stderr_output}")
+                        
+                    # Write the error output to the log file
+                    with open(self.log_file, 'a') as log:
+                        if stdout_output:
+                            log.write(f"\nCaddy stdout output:\n{stdout_output}\n")
+                        if stderr_output:
+                            log.write(f"\nCaddy stderr output:\n{stderr_output}\n")
+                except Exception as e:
+                    print(f"Error reading Caddy output: {e}")
+                    
                 return False
                 
-            # Verify Caddy is actually running (optional check)
+            # Verify Caddy is actually running
             try:
                 import psutil
                 process = psutil.Process(self.process.pid)
                 if not process.is_running():
-                    self.logger.error("Caddy process is not running")
+                    print("Caddy process is not running")
                     return False
-            except ImportError:
-                # psutil not installed, skip verification
-                self.logger.warning("psutil not installed, skipping process verification")
-            except Exception as e:
-                self.logger.warning(f"Error verifying Caddy process: {e}")
-                # Continue even if verification fails
                 
-            self.logger.info(f"Caddy started with PID {self.process.pid}")
+                # Additional check: verify Caddy is listening on the expected ports
+                connections = process.connections()
+                listening_ports = {conn.laddr.port for conn in connections if conn.status == 'LISTEN'}
+                expected_ports = {80, 443, 9072}
+                
+                if not all(port in listening_ports for port in expected_ports):
+                    print(f"Caddy is not listening on all expected ports. Listening on: {listening_ports}")
+                    return False
+                    
+            except ImportError:
+                print("psutil not installed, skipping process verification")
+            except Exception as e:
+                print(f"Error verifying Caddy process: {e}")
+                
+            print(f"Caddy started with PID {self.process.pid}")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to start Caddy: {e}")
+            print(f"Failed to start Caddy: {e}")
             return False
 
     def stop_caddy(self):
@@ -417,7 +541,36 @@ class CaddyManager:
 
     def is_running(self):
         """Check if Caddy is currently running"""
-        return self.process is not None and self.process.poll() is None
+        if not self.process:
+            return False
+            
+        try:
+            # Check if process is still running
+            if self.process.poll() is not None:
+                return False
+                
+            # Additional verification using psutil if available
+            try:
+                import psutil
+                process = psutil.Process(self.process.pid)
+                if not process.is_running():
+                    return False
+                    
+                # Verify Caddy is listening on expected ports
+                connections = process.connections()
+                listening_ports = {conn.laddr.port for conn in connections if conn.status == 'LISTEN'}
+                expected_ports = {80, 443, 9072}
+                
+                return all(port in listening_ports for port in expected_ports)
+                
+            except ImportError:
+                # If psutil is not available, just check if process is running
+                return True
+            except Exception:
+                return False
+                
+        except Exception:
+            return False
 
 # If run directly, test the Caddy manager
 if __name__ == "__main__":
