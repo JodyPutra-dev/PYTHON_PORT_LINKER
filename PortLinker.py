@@ -20,14 +20,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QColor
 
-# Import the Caddy Manager
-from caddy_manager import CaddyManager
-
 # Daftar port default
 DEFAULT_PORTS = [80, 443, 9072]
-
-# Caddy manager instance
-caddy_manager = None
 
 # Translation dictionary for multilingual support
 TRANSLATIONS = {
@@ -86,12 +80,6 @@ TRANSLATIONS = {
         "resolve_hostnames_btn": "Resolve Hostnames",
         "scanning_network": "Scanning network...",
         "cancel_btn": "Cancel",
-        "https_enabled_label": "Enable HTTPS Reverse Proxy",
-        "https_info_text": "HTTPS reverse proxy using Caddy with self-signed certificates.\nAccess your service securely via https://IP:PORT.\nBrowser warnings are normal with self-signed certificates.",
-        "https_enabled": "HTTPS Reverse Proxy Enabled",
-        "https_disabled": "HTTPS Reverse Proxy Disabled",
-        "https_failed": "Failed to start HTTPS Reverse Proxy: {error}",
-        "https_stop_failed": "Failed to stop HTTPS Reverse Proxy: {error}",
     },
     "id": {  # Indonesian
         "window_title": "PortLinker",
@@ -148,12 +136,6 @@ TRANSLATIONS = {
         "resolve_hostnames_btn": "Cari Hostnames",
         "scanning_network": "Memindai jaringan...",
         "cancel_btn": "Batal",
-        "https_enabled_label": "Aktifkan HTTPS Reverse Proxy",
-        "https_info_text": "HTTPS reverse proxy menggunakan Caddy dengan sertifikat self-signed.\nAkses layanan Anda dengan aman melalui https://IP:PORT.\nPeringatan browser normal dengan sertifikat self-signed.",
-        "https_enabled": "HTTPS Reverse Proxy Diaktifkan",
-        "https_disabled": "HTTPS Reverse Proxy Dinonaktifkan",
-        "https_failed": "Gagal memulai HTTPS Reverse Proxy: {error}",
-        "https_stop_failed": "Gagal menghentikan HTTPS Reverse Proxy: {error}",
     }
 }
 
@@ -824,8 +806,6 @@ def reset_ports():
 
 def enable_port_forwarding():
     """Enable port forwarding"""
-    global caddy_manager
-    
     ip = ip_entry.text().strip()
     listen_ip = listen_ip_entry.text().strip() or "0.0.0.0"
     
@@ -898,26 +878,6 @@ def enable_port_forwarding():
             # Tampilkan pesan sukses tentang aturan firewall
             port_list = ", ".join([str(p) for p in active_ports])
             QMessageBox.information(None, get_text("success_title"), f"Firewall rules successfully added for ports: {port_list}")
-        
-        # Check HTTPS mode and start Caddy if needed
-        if https_mode_combo:
-            selected_mode = https_mode_combo.currentText()
-            if selected_mode in ["HTTPS Only", "Both HTTP and HTTPS"]:
-                try:
-                    # Initialize Caddy manager if needed
-                    if caddy_manager is None:
-                        caddy_manager = CaddyManager()
-                    
-                    # Generate Caddyfile and start Caddy
-                    caddy_manager.generate_caddyfile(listen_ip, active_ports, ip)
-                    success = caddy_manager.start_caddy()
-                    
-                    if success:
-                        status_label.setText(f"{status_label.text()}\n{get_text('https_enabled')}")
-                    else:
-                        status_label.setText(f"{status_label.text()}\n{get_text('https_failed', error='Unknown error')}")
-                except Exception as e:
-                    status_label.setText(f"{status_label.text()}\n{get_text('https_failed', error=str(e))}")
         
         # Tampilkan info jaringan untuk membantu troubleshoot
         hostname, ip_addresses, ipconfig = get_network_info()
@@ -1029,18 +989,8 @@ def delete_all_port_switcher_firewall_rules():
 
 def disable_port_forwarding():
     """Disable port forwarding"""
-    global caddy_manager
-    
     try:
-        # Stop Caddy if it's running
-        if caddy_manager and caddy_manager.is_running():
-            try:
-                caddy_manager.stop_caddy()
-                status_label.setText(f"{get_text('status_disabled')}\n{get_text('https_disabled')}")
-            except Exception as e:
-                status_label.setText(f"{get_text('status_disabled')}\n{get_text('https_stop_failed', error=str(e))}")
-        else:
-            status_label.setText(get_text("status_disabled"))
+        status_label.setText(get_text("status_disabled"))
         
         # Dapatkan port-port aktif menggunakan fungsi yang sudah ada
         active_ports = get_active_ports()
@@ -1241,12 +1191,6 @@ def create_help_tab(notebook):
     check_btn.clicked.connect(lambda: show_network_info())
     help_layout.addWidget(check_btn)
     
-    # Add button for HTTPS Reverse Proxy
-    https_btn = QPushButton("HTTPS Reverse Proxy")
-    https_btn.setMinimumHeight(40)
-    https_btn.clicked.connect(lambda: show_https_reverse_proxy_dialog(notebook))
-    help_layout.addWidget(https_btn)
-    
     # Scroll area for help content
     scroll_area = QScrollArea()
     scroll_area.setWidgetResizable(True)
@@ -1282,88 +1226,6 @@ def create_help_tab(notebook):
     help_layout.addWidget(scroll_area)
     
     return help_tab
-
-def show_https_reverse_proxy_dialog(parent=None):
-    """Show HTTPS Reverse Proxy configuration dialog"""
-    if not parent and hasattr(app, 'window'):
-        parent = app.window
-    
-    # Create dialog
-    https_dialog = QDialog(parent)
-    https_dialog.setWindowTitle("HTTPS Reverse Proxy")
-    https_dialog.setMinimumSize(600, 400)
-    
-    # Create layout
-    layout = QVBoxLayout(https_dialog)
-    layout.setContentsMargins(15, 15, 15, 15)
-    layout.setSpacing(15)
-    
-    # Add header
-    header = QLabel("HTTPS Reverse Proxy Configuration")
-    header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #2563eb; margin-bottom: 10px;")
-    layout.addWidget(header)
-    
-    # HTTPS Caddy section
-    https_group = QGroupBox("HTTPS Reverse Proxy")
-    https_layout = QVBoxLayout()
-    https_layout.setContentsMargins(15, 15, 15, 15)
-    https_layout.setSpacing(15)
-    https_group.setLayout(https_layout)
-    
-    global https_checkbox
-    https_checkbox = QCheckBox(get_text("https_enabled_label"))
-    https_checkbox.setMinimumHeight(40)
-    https_layout.addWidget(https_checkbox)
-    
-    https_info = QLabel(get_text("https_info_text"))
-    https_info.setWordWrap(True)
-    https_info.setMinimumHeight(80)
-    https_info.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
-    https_layout.addWidget(https_info)
-    
-    # Set minimum height for the entire group
-    https_group.setMinimumHeight(150)
-    layout.addWidget(https_group)
-    
-    # Add status label
-    status_label = QLabel("Status: Not Configured")
-    status_label.setStyleSheet("font-weight: bold; padding: 10px;")
-    layout.addWidget(status_label)
-    
-    # Add buttons
-    buttons_layout = QHBoxLayout()
-    buttons_layout.setSpacing(10)
-    
-    # Add check Caddy button
-    check_caddy_btn = QPushButton("Check Caddy Status")
-    check_caddy_btn.setMinimumHeight(40)
-    check_caddy_btn.clicked.connect(lambda: check_caddy_status(status_label))
-    buttons_layout.addWidget(check_caddy_btn)
-    
-    # Add close button
-    close_btn = QPushButton("Close")
-    close_btn.setMinimumHeight(40)
-    close_btn.clicked.connect(https_dialog.close)
-    buttons_layout.addWidget(close_btn)
-    
-    layout.addLayout(buttons_layout)
-    
-    # Show the dialog
-    https_dialog.exec()
-
-def check_caddy_status(status_label):
-    """Check the status of Caddy server"""
-    global caddy_manager
-    try:
-        if caddy_manager and caddy_manager.is_running():
-            status_label.setText("Status: Caddy is running")
-            status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #10b981;")
-        else:
-            status_label.setText("Status: Caddy is not running")
-            status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #ef4444;")
-    except Exception as e:
-        status_label.setText(f"Status: Error checking Caddy - {str(e)}")
-        status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #ef4444;")
 
 def get_help_content_for_language(lang):
     """Get the appropriate help content HTML for the current language"""
@@ -1927,10 +1789,6 @@ class PortLinkerApp(QMainWindow):
         self.tabs.setTabText(0, get_text("tab_forwarding"))
         self.tabs.setTabText(1, get_text("tab_troubleshoot"))
         
-        # Update HTTPS checkbox
-        if https_checkbox:
-            https_checkbox.setText(get_text("https_enabled_label"))
-        
         # We need to recreate the tabs with new language
         current_tab = self.tabs.currentIndex()
         
@@ -2016,27 +1874,6 @@ class PortLinkerApp(QMainWindow):
         reset_ports_btn.setMaximumWidth(60)
         reset_ports_btn.clicked.connect(reset_ports)
         ports_layout.addWidget(reset_ports_btn)
-        
-        # HTTPS Configuration section
-        https_label = QLabel("Protocol Mode:")
-        form_layout.addWidget(https_label, 3, 0)
-        
-        https_widget = QWidget()
-        https_layout = QHBoxLayout(https_widget)
-        https_layout.setContentsMargins(0, 0, 0, 0)
-        https_layout.setSpacing(10)
-        form_layout.addWidget(https_widget, 3, 1)
-        
-        global https_mode_combo
-        https_mode_combo = QComboBox()
-        https_mode_combo.addItems(["HTTP Only", "HTTPS Only", "Both HTTP and HTTPS"])
-        https_mode_combo.setMinimumWidth(250)
-        https_layout.addWidget(https_mode_combo)
-        
-        # Add info text
-        https_info = QLabel("HTTPS requires Caddy to be running")
-        https_info.setStyleSheet("color: #64748b; font-style: italic;")
-        https_layout.addWidget(https_info)
         
         # Add spacing after the form
         main_layout.addSpacing(20)
@@ -2241,15 +2078,8 @@ class PortLinkerApp(QMainWindow):
         # Show the dialog
         network_dialog.exec()
 
-    # Override closeEvent to clean up Caddy
+    # Override closeEvent to clean up
     def closeEvent(self, event):
-        global caddy_manager
-        # Stop Caddy if it's running
-        if caddy_manager and caddy_manager.is_running():
-            try:
-                caddy_manager.stop_caddy()
-            except:
-                pass
         # Call the parent class closeEvent
         super().closeEvent(event)
 
