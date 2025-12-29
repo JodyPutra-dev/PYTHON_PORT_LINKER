@@ -101,6 +101,32 @@ TRANSLATIONS = {
         "cf_success_started": "Tunnel started successfully!",
         "cf_success_stopped": "Tunnel stopped successfully.",
         "cf_url_copied": "URL copied to clipboard!",
+        "cf_detect_ip_btn": "Detect IP",
+        "cf_wsl_warning": "Important: If your service is running in WSL, first enable port forwarding in the 'Port Forwarding' tab to forward the WSL IP to your Windows IP, then use your Windows IP here for the tunnel.",
+        "cf_not_installed_notice": "Cloudflare Tunnel service is not installed on the system.",
+        "cf_install_guide_link": "See installation guide in Troubleshooting tab.",
+        "cf_install_guide_title": "Cloudflare Tunnel Installation Guide",
+        "cf_install_guide_intro": "Follow these steps to install Cloudflare Tunnel (cloudflared) on your Windows system:",
+        "cf_install_step1_title": "Download cloudflared",
+        "cf_install_step1_desc": "Visit the official Cloudflare GitHub releases page and download the Windows version (cloudflared-windows-amd64.exe)",
+        "cf_install_step1_link": "https://github.com/cloudflare/cloudflared/releases/latest",
+        "cf_install_step2_title": "Rename and Place the File",
+        "cf_install_step2_desc": "Rename the downloaded file to <code>cloudflared.exe</code> and place it in one of these locations:",
+        "cf_install_step2_option1": "In the same folder as PortLinker.exe (easiest method)",
+        "cf_install_step2_option2": "In a dedicated folder like <code>C:\\Program Files\\cloudflared\\</code>",
+        "cf_install_step2_option3": "In your user folder: <code>%LOCALAPPDATA%\\cloudflared\\</code>",
+        "cf_install_step3_title": "Add to Windows PATH (Optional but Recommended)",
+        "cf_install_step3_desc": "To use cloudflared from anywhere, add it to your system PATH:",
+        "cf_install_step3_substep1": "Right-click 'This PC' or 'My Computer' and select 'Properties'",
+        "cf_install_step3_substep2": "Click 'Advanced system settings' → 'Environment Variables'",
+        "cf_install_step3_substep3": "Under 'System variables', find and select 'Path', then click 'Edit'",
+        "cf_install_step3_substep4": "Click 'New' and add the folder path where you placed cloudflared.exe",
+        "cf_install_step3_substep5": "Click 'OK' on all dialogs to save",
+        "cf_install_step4_title": "Restart PortLinker",
+        "cf_install_step4_desc": "Close and reopen PortLinker. The Cloudflare Tunnel tab should now be enabled.",
+        "cf_install_verify_title": "Verify Installation",
+        "cf_install_verify_desc": "Open Command Prompt and type <code>cloudflared --version</code>. If installed correctly, you'll see the version number.",
+        "cf_install_note": "Note: If you placed cloudflared.exe in the same folder as PortLinker, you don't need to add it to PATH.",
     },
     "id": {  # Indonesian
         "window_title": "PortLinker",
@@ -174,6 +200,32 @@ TRANSLATIONS = {
         "cf_success_started": "Tunnel berhasil dimulai!",
         "cf_success_stopped": "Tunnel berhasil dihentikan.",
         "cf_url_copied": "URL berhasil disalin!",
+        "cf_detect_ip_btn": "Deteksi IP",
+        "cf_wsl_warning": "Penting: Jika layanan Anda berjalan di WSL, aktifkan port forwarding di tab 'Port Forwarding' terlebih dahulu untuk meneruskan IP WSL ke IP Windows Anda, lalu gunakan IP Windows Anda di sini untuk tunnel.",
+        "cf_not_installed_notice": "Layanan Cloudflare Tunnel belum terinstal di sistem.",
+        "cf_install_guide_link": "Lihat panduan instalasi di tab Pemecahan Masalah.",
+        "cf_install_guide_title": "Panduan Instalasi Cloudflare Tunnel",
+        "cf_install_guide_intro": "Ikuti langkah-langkah berikut untuk menginstal Cloudflare Tunnel (cloudflared) di sistem Windows Anda:",
+        "cf_install_step1_title": "Unduh cloudflared",
+        "cf_install_step1_desc": "Kunjungi halaman rilis GitHub resmi Cloudflare dan unduh versi Windows (cloudflared-windows-amd64.exe)",
+        "cf_install_step1_link": "https://github.com/cloudflare/cloudflared/releases/latest",
+        "cf_install_step2_title": "Ubah Nama dan Tempatkan File",
+        "cf_install_step2_desc": "Ubah nama file yang diunduh menjadi <code>cloudflared.exe</code> dan tempatkan di salah satu lokasi berikut:",
+        "cf_install_step2_option1": "Di folder yang sama dengan PortLinker.exe (metode termudah)",
+        "cf_install_step2_option2": "Di folder khusus seperti <code>C:\\Program Files\\cloudflared\\</code>",
+        "cf_install_step2_option3": "Di folder pengguna Anda: <code>%LOCALAPPDATA%\\cloudflared\\</code>",
+        "cf_install_step3_title": "Tambahkan ke Windows PATH (Opsional tapi Disarankan)",
+        "cf_install_step3_desc": "Untuk menggunakan cloudflared dari mana saja, tambahkan ke PATH sistem Anda:",
+        "cf_install_step3_substep1": "Klik kanan 'This PC' atau 'My Computer' dan pilih 'Properties'",
+        "cf_install_step3_substep2": "Klik 'Advanced system settings' → 'Environment Variables'",
+        "cf_install_step3_substep3": "Di bawah 'System variables', cari dan pilih 'Path', lalu klik 'Edit'",
+        "cf_install_step3_substep4": "Klik 'New' dan tambahkan path folder tempat Anda meletakkan cloudflared.exe",
+        "cf_install_step3_substep5": "Klik 'OK' pada semua dialog untuk menyimpan",
+        "cf_install_step4_title": "Restart PortLinker",
+        "cf_install_step4_desc": "Tutup dan buka kembali PortLinker. Tab Cloudflare Tunnel sekarang harus diaktifkan.",
+        "cf_install_verify_title": "Verifikasi Instalasi",
+        "cf_install_verify_desc": "Buka Command Prompt dan ketik <code>cloudflared --version</code>. Jika terinstal dengan benar, Anda akan melihat nomor versi.",
+        "cf_install_note": "Catatan: Jika Anda meletakkan cloudflared.exe di folder yang sama dengan PortLinker, Anda tidak perlu menambahkannya ke PATH.",
     }
 }
 
@@ -1525,6 +1577,112 @@ def get_help_content_for_language(lang):
         </ul>
     </li>
 </ol>
+
+<h3>Panduan Instalasi Cloudflare Tunnel:</h3>
+<p>Ikuti langkah-langkah berikut untuk menginstal Cloudflare Tunnel (cloudflared) di sistem Windows Anda:</p>
+
+<ol>
+    <li><b>Unduh cloudflared</b>
+        <ul>
+            <li>Kunjungi <a href="https://github.com/cloudflare/cloudflared/releases/latest" style="color: #2563eb;">halaman rilis GitHub resmi Cloudflare</a></li>
+            <li>Unduh versi Windows: <span class="port">cloudflared-windows-amd64.exe</span></li>
+        </ul>
+    </li>
+
+    <li><b>Ubah Nama dan Tempatkan File</b>
+        <ul>
+            <li>Ubah nama file yang diunduh menjadi <span class="port">cloudflared.exe</span></li>
+            <li>Tempatkan di salah satu lokasi berikut:</li>
+            <ul>
+                <li>✓ Di folder yang sama dengan PortLinker.exe <span class="example">(metode termudah)</span></li>
+                <li>Di folder khusus seperti <span class="port">C:\\Program Files\\cloudflared\\</span></li>
+                <li>Di folder pengguna Anda: <span class="port">%LOCALAPPDATA%\\cloudflared\\</span></li>
+            </ul>
+        </ul>
+    </li>
+
+    <li><b>Tambahkan ke Windows PATH (Opsional tapi Disarankan)</b>
+        <ul>
+            <li>Untuk menggunakan cloudflared dari mana saja, tambahkan ke PATH sistem Anda:</li>
+            <ol>
+                <li>Klik kanan 'This PC' atau 'My Computer' dan pilih 'Properties'</li>
+                <li>Klik 'Advanced system settings' → 'Environment Variables'</li>
+                <li>Di bawah 'System variables', cari dan pilih 'Path', lalu klik 'Edit'</li>
+                <li>Klik 'New' dan tambahkan path folder tempat Anda meletakkan cloudflared.exe</li>
+                <li>Klik 'OK' pada semua dialog untuk menyimpan</li>
+            </ol>
+        </ul>
+    </li>
+
+    <li><b>Restart PortLinker</b>
+        <ul>
+            <li>Tutup dan buka kembali PortLinker</li>
+            <li>Tab Cloudflare Tunnel sekarang harus diaktifkan</li>
+        </ul>
+    </li>
+
+    <li><b>Verifikasi Instalasi</b>
+        <ul>
+            <li>Buka Command Prompt dan ketik: <span class="port">cloudflared --version</span></li>
+            <li>Jika terinstal dengan benar, Anda akan melihat nomor versi</li>
+        </ul>
+    </li>
+</ol>
+
+<p><span class="highlight">Catatan:</span> Jika Anda meletakkan cloudflared.exe di folder yang sama dengan PortLinker, Anda tidak perlu menambahkannya ke PATH.</p>
+
+<h3>Cloudflare Tunnel Installation Guide:</h3>
+<p>Follow these steps to install Cloudflare Tunnel (cloudflared) on your Windows system:</p>
+
+<ol>
+    <li><b>Download cloudflared</b>
+        <ul>
+            <li>Visit the <a href="https://github.com/cloudflare/cloudflared/releases/latest" style="color: #2563eb;">official Cloudflare GitHub releases page</a></li>
+            <li>Download the Windows version: <span class="port">cloudflared-windows-amd64.exe</span></li>
+        </ul>
+    </li>
+
+    <li><b>Rename and Place the File</b>
+        <ul>
+            <li>Rename the downloaded file to <span class="port">cloudflared.exe</span></li>
+            <li>Place it in one of these locations:</li>
+            <ul>
+                <li>✓ In the same folder as PortLinker.exe <span class="example">(easiest method)</span></li>
+                <li>In a dedicated folder like <span class="port">C:\\Program Files\\cloudflared\\</span></li>
+                <li>In your user folder: <span class="port">%LOCALAPPDATA%\\cloudflared\\</span></li>
+            </ul>
+        </ul>
+    </li>
+
+    <li><b>Add to Windows PATH (Optional but Recommended)</b>
+        <ul>
+            <li>To use cloudflared from anywhere, add it to your system PATH:</li>
+            <ol>
+                <li>Right-click 'This PC' or 'My Computer' and select 'Properties'</li>
+                <li>Click 'Advanced system settings' → 'Environment Variables'</li>
+                <li>Under 'System variables', find and select 'Path', then click 'Edit'</li>
+                <li>Click 'New' and add the folder path where you placed cloudflared.exe</li>
+                <li>Click 'OK' on all dialogs to save</li>
+            </ol>
+        </ul>
+    </li>
+
+    <li><b>Restart PortLinker</b>
+        <ul>
+            <li>Close and reopen PortLinker</li>
+            <li>The Cloudflare Tunnel tab should now be enabled</li>
+        </ul>
+    </li>
+
+    <li><b>Verify Installation</b>
+        <ul>
+            <li>Open Command Prompt and type: <span class="port">cloudflared --version</span></li>
+            <li>If installed correctly, you'll see the version number</li>
+        </ul>
+    </li>
+</ol>
+
+<p><span class="highlight">Note:</span> If you placed cloudflared.exe in the same folder as PortLinker, you don't need to add it to PATH.</p>
 </body>
 </html>"""
 
@@ -2116,7 +2274,7 @@ class PortLinkerApp(QMainWindow):
         """Create the Cloudflare Tunnel tab"""
         global cf_tunnel_ip_entry, cf_tunnel_port_entry, cf_tunnel_status_label
         global cf_tunnel_url_text, cf_copy_url_btn, cf_url_frame
-        global cf_start_btn, cf_stop_btn
+        global cf_start_btn, cf_stop_btn, cf_install_notice_label
         
         cloudflare_tab = QWidget()
         main_layout = QVBoxLayout(cloudflare_tab)
@@ -2132,6 +2290,15 @@ class PortLinkerApp(QMainWindow):
         )
         main_layout.addWidget(info_label)
         
+        # WSL Warning label
+        wsl_warning_label = QLabel(get_text("cf_wsl_warning"))
+        wsl_warning_label.setWordWrap(True)
+        wsl_warning_label.setStyleSheet(
+            "background-color: #fef3c7; padding: 12px; border-radius: 5px; "
+            "color: #92400e; border: 1px solid #fbbf24; font-size: 11pt;"
+        )
+        main_layout.addWidget(wsl_warning_label)
+        
         # Form section
         form_layout = QGridLayout()
         form_layout.setContentsMargins(0, 0, 0, 0)
@@ -2142,14 +2309,26 @@ class PortLinkerApp(QMainWindow):
         ip_label = QLabel(get_text("cf_tunnel_ip_label"))
         form_layout.addWidget(ip_label, 0, 0)
         
+        # Create horizontal layout for IP entry and detect button
+        ip_widget = QWidget()
+        ip_layout = QHBoxLayout(ip_widget)
+        ip_layout.setContentsMargins(0, 0, 0, 0)
+        ip_layout.setSpacing(10)
+        
         cf_tunnel_ip_entry = QLineEdit()
         cf_tunnel_ip_entry.setMinimumWidth(250)
-        # Set default value from main tab if available
-        if ip_entry and ip_entry.text():
-            cf_tunnel_ip_entry.setText(ip_entry.text())
-        else:
-            cf_tunnel_ip_entry.setText("127.0.0.1")
-        form_layout.addWidget(cf_tunnel_ip_entry, 0, 1)
+        # Set default value to Windows IP
+        cf_tunnel_ip_entry.setText(get_local_ip())
+        ip_layout.addWidget(cf_tunnel_ip_entry)
+        
+        # Add Detect IP button
+        cf_detect_ip_btn = QPushButton(get_text("cf_detect_ip_btn"))
+        cf_detect_ip_btn.setObjectName("detectButton")
+        cf_detect_ip_btn.setMaximumWidth(100)
+        cf_detect_ip_btn.clicked.connect(lambda: cf_tunnel_ip_entry.setText(get_local_ip()))
+        ip_layout.addWidget(cf_detect_ip_btn)
+        
+        form_layout.addWidget(ip_widget, 0, 1)
         
         # Port row
         port_label = QLabel(get_text("cf_tunnel_port_label"))
@@ -2191,7 +2370,32 @@ class PortLinkerApp(QMainWindow):
         cf_stop_btn.clicked.connect(stop_cloudflare_tunnel)
         button_layout.addWidget(cf_stop_btn)
         
+        # Check if cloudflared is installed
+        is_installed = cloudflare_manager.is_cloudflared_installed()
+        
+        # If not installed, disable buttons
+        if not is_installed:
+            cf_start_btn.setEnabled(False)
+            cf_stop_btn.setEnabled(False)
+        
         main_layout.addLayout(button_layout)
+        
+        # Add installation notice label (shown only if not installed)
+        cf_install_notice_label = QLabel()
+        cf_install_notice_label.setWordWrap(True)
+        cf_install_notice_label.setStyleSheet(
+            "background-color: #fee2e2; padding: 12px; border-radius: 5px; "
+            "color: #991b1b; border: 1px solid #fca5a5; font-size: 10pt;"
+        )
+        
+        if not is_installed:
+            notice_text = f"{get_text('cf_not_installed_notice')}\n{get_text('cf_install_guide_link')}"
+            cf_install_notice_label.setText(notice_text)
+            cf_install_notice_label.setVisible(True)
+        else:
+            cf_install_notice_label.setVisible(False)
+        
+        main_layout.addWidget(cf_install_notice_label)
         
         # Spacing
         main_layout.addSpacing(20)

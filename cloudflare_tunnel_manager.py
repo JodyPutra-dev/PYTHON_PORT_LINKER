@@ -26,6 +26,7 @@ import subprocess
 import threading
 import re
 import time
+import shutil
 from typing import Optional
 
 
@@ -39,6 +40,37 @@ class CloudflareTunnelManager:
         self.is_active: bool = False
         self.output_thread: Optional[threading.Thread] = None
         self.lock = threading.Lock()
+    
+    @staticmethod
+    def is_cloudflared_installed() -> bool:
+        """
+        Check if cloudflared is installed and available.
+        
+        Checks both system PATH and current directory for cloudflared.exe.
+        
+        Returns:
+            True if cloudflared is found, False otherwise
+        """
+        # Check if cloudflared is in PATH
+        if shutil.which('cloudflared') is not None:
+            return True
+        
+        # Check for cloudflared.exe in current directory
+        import os
+        if os.path.exists('cloudflared.exe'):
+            return True
+        
+        # Check in common installation locations (optional)
+        common_paths = [
+            os.path.join(os.environ.get('PROGRAMFILES', 'C:\\Program Files'), 'cloudflared', 'cloudflared.exe'),
+            os.path.join(os.environ.get('LOCALAPPDATA', ''), 'cloudflared', 'cloudflared.exe'),
+        ]
+        
+        for path in common_paths:
+            if os.path.exists(path):
+                return True
+        
+        return False
     
     def start_tunnel(self, ip: str, port: int) -> bool:
         """

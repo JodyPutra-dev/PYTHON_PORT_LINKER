@@ -26,6 +26,7 @@ PortLinker is a Windows application that makes it easy to set up port forwarding
 - **Conflict Resolution**: Detect and resolve port conflicts with running services
 - **User-friendly UI**: Clean, modern interface with clear status indicators
 - **Troubleshooting Tools**: Built-in network diagnostics and connection testing
+- **Cloudflare Tunnel Integration**: Expose local services to the internet securely using Cloudflare's tunnel technology
 
 ## ⚠️ Antivirus Warning
 
@@ -51,6 +52,14 @@ PortLinker is a completely safe and open-source application. It contains no mali
 - Administrator privileges (required to modify network configuration)
 - Python 3.8+ with PySide6 installed (or use the standalone executable)
 
+### Optional: Cloudflare Tunnel
+
+For internet exposure features:
+- `cloudflared.exe` must be installed and available in system PATH or same directory as PortLinker
+- Download from: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+- Internet connection required for tunnel functionality
+- No Cloudflare account needed (uses quick tunnels)
+
 ## Installation
 
 ### Pre-built Executable
@@ -74,7 +83,12 @@ If you prefer to run from source code:
    pip install PySide6
    ```
 
-3. Run the application with administrator privileges:
+3. (Optional) Install Cloudflare Tunnel for internet exposure features:
+   - Download `cloudflared.exe` from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+   - Add to system PATH or place in the same directory as PortLinker.py
+   - This step can be skipped if only using local port forwarding
+
+4. Run the application with administrator privileges:
    ```
    python PortLinker.py
    ```
@@ -115,6 +129,25 @@ To build the executable yourself:
    - The application will create necessary network and firewall rules
    - Status will be updated with the active configuration
 
+### Using Cloudflare Tunnel
+
+Cloudflare Tunnel allows you to expose local services to the internet without port forwarding or firewall configuration.
+
+1. Navigate to the **"Cloudflare Tunnel"** tab
+2. Enter the **Target IP Address** (e.g., your WSL IP like `172.x.x.x` or `127.0.0.1` for localhost)
+3. Enter the **Target Port** number of the service you want to expose (e.g., `80`, `3000`, `8080`)
+4. Click **"Start Tunnel"** (or **"Mulai Tunnel"** in Indonesian)
+5. Wait a few seconds for the tunnel to initialize
+6. **Copy the generated tunnel URL** (e.g., `https://xyz.trycloudflare.com`)
+7. Share this URL to access your service from anywhere in the world
+8. Click **"Stop Tunnel"** (or **"Hentikan Tunnel"**) when finished
+
+**Important Notes:**
+- Tunnel URLs are **temporary** and change with each tunnel session
+- Tunnels remain active until you stop them or close the application
+- No Cloudflare account or authentication required (uses quick tunnels)
+- Requires active internet connection
+
 ### Common Use Cases
 
 #### Forwarding to WSL
@@ -133,6 +166,27 @@ To make locally running services available on your network:
 3. Select the ports your services are running on
 4. Click "Aktifkan Port Forwarding"
 
+#### Exposing Services to the Internet
+
+To make local services publicly accessible via the internet:
+1. Use the **Cloudflare Tunnel** tab (no router configuration needed)
+2. Enter your local service's IP and port
+3. Click **"Start Tunnel"** to get a public HTTPS URL
+4. Share the URL with remote team members or external services
+
+**Example Use Cases:**
+- Sharing a local development server with remote collaborators
+- Testing webhooks from external services (GitHub, Stripe, etc.)
+- Providing temporary public access to WSL-hosted applications
+- Demoing work-in-progress projects without deployment
+
+**Advantages:**
+- No port forwarding or router configuration required
+- No firewall changes needed
+- Automatic HTTPS encryption
+- Works behind NAT and restrictive firewalls
+- Temporary URLs that don't expose your network permanently
+
 ## Troubleshooting
 
 PortLinker includes a dedicated troubleshooting tab with:
@@ -141,15 +195,72 @@ PortLinker includes a dedicated troubleshooting tab with:
 - Firewall rule verification
 - Common connection issues and solutions
 
+### Port Forwarding Issues
+
 For connection problems:
 1. Ensure devices are on the same network
 2. Check Windows Firewall settings
 3. Verify the correct IP addresses are being used
 4. Confirm target services are running and accessible
 
+### Cloudflare Tunnel Issues
+
+If you encounter problems with Cloudflare Tunnel:
+
+**"cloudflared.exe not found" error:**
+- Verify cloudflared is installed: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+- Ensure cloudflared.exe is in your system PATH or same directory as PortLinker
+- Restart PortLinker after installing cloudflared
+
+**Tunnel fails to start:**
+- Check your internet connection
+- Verify the target service is running on the specified IP and port
+- Try a different port (some ports may be restricted)
+- Check Windows Defender or antivirus isn't blocking cloudflared.exe
+
+**Tunnel URL doesn't appear:**
+- Wait up to 30 seconds for initialization (tunnel creation takes time)
+- Check the status label for error messages
+- Verify cloudflared.exe is not blocked by firewall
+
+**Tunnel disconnects unexpectedly:**
+- Quick tunnels are temporary by design
+- Check internet connection stability
+- Restart the tunnel if needed
+- For long-running tunnels, consider Cloudflare's authenticated tunnels
+
+**For advanced troubleshooting**, visit Cloudflare Tunnel documentation:
+https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+
 ## How It Works
 
+### Port Forwarding
+
 PortLinker uses Windows' built-in `netsh interface portproxy` commands to create port forwarding rules at the system level. It also manages Windows Firewall rules to ensure forwarded ports are accessible.
+
+**Use port forwarding for:** Local network access (LAN)
+
+### Cloudflare Tunnel
+
+Cloudflare Tunnel creates secure outbound connections from your machine to Cloudflare's edge network. It uses Cloudflare's quick tunnels (trycloudflare.com) which:
+- Require **no authentication** or Cloudflare account
+- Generate **temporary HTTPS URLs** that change with each session
+- Create **secure encrypted tunnels** through Cloudflare's global network
+- Work through **NAT and firewalls** (only outbound connection needed)
+- Automatically handle **SSL/TLS certificates** (no manual setup)
+
+**Use Cloudflare Tunnel for:** Public internet access from anywhere
+
+### Key Differences
+
+| Feature | Port Forwarding | Cloudflare Tunnel |
+|---------|----------------|-------------------|
+| **Scope** | Local network only | Public internet |
+| **Configuration** | Router & firewall | None required |
+| **URL** | Your IP address | Cloudflare subdomain |
+| **Security** | Manual SSL setup | Automatic HTTPS |
+| **Firewall** | Inbound rules needed | Works through NAT |
+| **Persistence** | Permanent rules | Temporary tunnels |
 
 ## License
 
