@@ -19,9 +19,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QColor
+from cloudflare_tunnel_manager import CloudflareTunnelManager
 
 # Daftar port default
 DEFAULT_PORTS = [80, 443, 9072]
+
+# Initialize Cloudflare Tunnel Manager
+cloudflare_manager = CloudflareTunnelManager()
 
 # Translation dictionary for multilingual support
 TRANSLATIONS = {
@@ -80,6 +84,23 @@ TRANSLATIONS = {
         "resolve_hostnames_btn": "Resolve Hostnames",
         "scanning_network": "Scanning network...",
         "cancel_btn": "Cancel",
+        "tab_cloudflare": "Cloudflare Tunnel",
+        "cf_tunnel_ip_label": "Target IP Address:",
+        "cf_tunnel_port_label": "Target Port:",
+        "cf_start_tunnel_btn": "Start Tunnel",
+        "cf_stop_tunnel_btn": "Stop Tunnel",
+        "cf_status_stopped": "Status: Tunnel Stopped",
+        "cf_status_starting": "Status: Starting tunnel...",
+        "cf_status_running": "Status: Tunnel Running",
+        "cf_tunnel_url_label": "Tunnel URL:",
+        "cf_copy_url_btn": "Copy URL",
+        "cf_info_text": "Cloudflare Tunnel creates a secure connection to expose your local service to the internet. Enter the IP and port of your local service.",
+        "cf_error_no_ip": "Please enter a valid IP address.",
+        "cf_error_no_port": "Please enter a valid port number.",
+        "cf_error_start_failed": "Failed to start tunnel. Make sure cloudflared is installed.",
+        "cf_success_started": "Tunnel started successfully!",
+        "cf_success_stopped": "Tunnel stopped successfully.",
+        "cf_url_copied": "URL copied to clipboard!",
     },
     "id": {  # Indonesian
         "window_title": "PortLinker",
@@ -136,6 +157,23 @@ TRANSLATIONS = {
         "resolve_hostnames_btn": "Cari Hostnames",
         "scanning_network": "Memindai jaringan...",
         "cancel_btn": "Batal",
+        "tab_cloudflare": "Cloudflare Tunnel",
+        "cf_tunnel_ip_label": "Alamat IP Target:",
+        "cf_tunnel_port_label": "Port Target:",
+        "cf_start_tunnel_btn": "Mulai Tunnel",
+        "cf_stop_tunnel_btn": "Hentikan Tunnel",
+        "cf_status_stopped": "Status: Tunnel Dihentikan",
+        "cf_status_starting": "Status: Memulai tunnel...",
+        "cf_status_running": "Status: Tunnel Berjalan",
+        "cf_tunnel_url_label": "URL Tunnel:",
+        "cf_copy_url_btn": "Salin URL",
+        "cf_info_text": "Cloudflare Tunnel membuat koneksi aman untuk mengekspos layanan lokal Anda ke internet. Masukkan IP dan port layanan lokal Anda.",
+        "cf_error_no_ip": "Silakan masukkan alamat IP yang valid.",
+        "cf_error_no_port": "Silakan masukkan nomor port yang valid.",
+        "cf_error_start_failed": "Gagal memulai tunnel. Pastikan cloudflared sudah terinstal.",
+        "cf_success_started": "Tunnel berhasil dimulai!",
+        "cf_success_stopped": "Tunnel berhasil dihentikan.",
+        "cf_url_copied": "URL berhasil disalin!",
     }
 }
 
@@ -424,7 +462,7 @@ try:
         sys.exit()
 except Exception as e:
     # Tangkap error jika terjadi masalah dengan pemeriksaan admin
-    messagebox.showerror("Error Admin", f"Terjadi error saat memeriksa hak admin:\n{str(e)}")
+    QMessageBox.showerror("Error Admin", f"Terjadi error saat memeriksa hak admin:\n{str(e)}")
     sys.exit(1)
 
 def check_port_in_use(port):
@@ -935,6 +973,126 @@ def enable_port_forwarding():
         return False
         
     return True
+
+def start_cloudflare_tunnel():
+    """Start Cloudflare Tunnel"""
+    # Get IP and port from inputs
+    ip = cf_tunnel_ip_entry.text().strip()
+    port_text = cf_tunnel_port_entry.text().strip()
+    
+    # Validate IP
+    if not ip:
+        QMessageBox.critical(None, get_text("error_title"), get_text("cf_error_no_ip"))
+        return
+    
+    # Validate port
+    if not port_text:
+        QMessageBox.critical(None, get_text("error_title"), get_text("cf_error_no_port"))
+        return
+    
+    try:
+        port = int(port_text)
+        if port < 1 or port > 65535:
+            raise ValueError()
+    except ValueError:
+        QMessageBox.critical(None, get_text("error_title"), get_text("cf_error_no_port"))
+        return
+    
+    # Update status to starting
+    cf_tunnel_status_label.setText(get_text("cf_status_starting"))
+    cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #f59e0b;")
+    QApplication.processEvents()  # Force UI update
+    
+    # Start tunnel
+    success = cloudflare_manager.start_tunnel(ip, port)
+    
+    if success:
+        # Get tunnel URL
+        tunnel_url = cloudflare_manager.get_tunnel_url()
+        
+        # Update status to running
+        cf_tunnel_status_label.setText(get_text("cf_status_running"))
+        cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #10b981;")
+        
+        # Display URL
+        if tunnel_url:
+            cf_tunnel_url_text.setText(tunnel_url)
+            cf_tunnel_url_text.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
+            cf_url_frame.setVisible(True)
+            cf_copy_url_btn.setEnabled(True)
+        
+        # Update button states
+        cf_start_btn.setEnabled(False)
+        cf_stop_btn.setEnabled(True)
+        
+        # Show success message
+        QMessageBox.information(None, get_text("success_title"), get_text("cf_success_started"))
+    else:
+        # Update status to stopped
+        cf_tunnel_status_label.setText(get_text("cf_status_stopped"))
+        cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #64748b;")
+        
+        # Show error message
+        QMessageBox.critical(None, get_text("error_title"), get_text("cf_error_start_failed"))
+
+def stop_cloudflare_tunnel():
+    """Stop Cloudflare Tunnel"""
+    # Stop tunnel
+    cloudflare_manager.stop_tunnel()
+    
+    # Update status
+    cf_tunnel_status_label.setText(get_text("cf_status_stopped"))
+    cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #64748b;")
+    
+    # Clear URL
+    cf_tunnel_url_text.setText("")
+    cf_url_frame.setVisible(False)
+    cf_copy_url_btn.setEnabled(False)
+    
+    # Update button states
+    cf_start_btn.setEnabled(True)
+    cf_stop_btn.setEnabled(False)
+    
+    # Show success message
+    QMessageBox.information(None, get_text("success_title"), get_text("cf_success_stopped"))
+
+def copy_tunnel_url():
+    """Copy tunnel URL to clipboard"""
+    url = cloudflare_manager.get_tunnel_url()
+    if url:
+        QApplication.clipboard().setText(url)
+        QMessageBox.information(None, get_text("success_title"), get_text("cf_url_copied"))
+
+def update_tunnel_status():
+    """Periodic tunnel status check"""
+    try:
+        if cloudflare_manager.is_running():
+            # Ensure UI reflects running state
+            if cf_start_btn.isEnabled():
+                cf_start_btn.setEnabled(False)
+                cf_stop_btn.setEnabled(True)
+                cf_tunnel_status_label.setText(get_text("cf_status_running"))
+                cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #10b981;")
+                
+                # Update URL if available
+                url = cloudflare_manager.get_tunnel_url()
+                if url and not cf_tunnel_url_text.text():
+                    cf_tunnel_url_text.setText(url)
+                    cf_tunnel_url_text.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
+                    cf_url_frame.setVisible(True)
+                    cf_copy_url_btn.setEnabled(True)
+        else:
+            # Ensure UI reflects stopped state
+            if cf_stop_btn.isEnabled():
+                cf_start_btn.setEnabled(True)
+                cf_stop_btn.setEnabled(False)
+                cf_tunnel_status_label.setText(get_text("cf_status_stopped"))
+                cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #64748b;")
+                cf_tunnel_url_text.setText("")
+                cf_url_frame.setVisible(False)
+                cf_copy_url_btn.setEnabled(False)
+    except:
+        pass  # Ignore errors in periodic check
 
 def delete_all_port_switcher_firewall_rules():
     """Hapus semua aturan firewall yang dimulai dengan 'Port_Switcher_'."""
@@ -1764,9 +1922,15 @@ class PortLinkerApp(QMainWindow):
         # Setup tabs
         self.setup_main_tab()
         self.setup_help_tab()
+        self.setup_cloudflare_tab()
         
         # Create status bar
         self.statusBar().showMessage("Ready")
+        
+        # Create timer for tunnel status updates
+        self.tunnel_status_timer = QTimer()
+        self.tunnel_status_timer.timeout.connect(update_tunnel_status)
+        self.tunnel_status_timer.start(2000)  # Check every 2 seconds
     
     def toggle_language(self):
         """Toggle between English and Indonesian languages"""
@@ -1788,6 +1952,7 @@ class PortLinkerApp(QMainWindow):
         # Update tab names
         self.tabs.setTabText(0, get_text("tab_forwarding"))
         self.tabs.setTabText(1, get_text("tab_troubleshoot"))
+        self.tabs.setTabText(2, get_text("tab_cloudflare"))
         
         # We need to recreate the tabs with new language
         current_tab = self.tabs.currentIndex()
@@ -1799,6 +1964,7 @@ class PortLinkerApp(QMainWindow):
         # Recreate tabs with new language
         self.setup_main_tab()
         self.setup_help_tab()
+        self.setup_cloudflare_tab()
         
         # Restore current tab
         self.tabs.setCurrentIndex(current_tab)
@@ -1946,6 +2112,130 @@ class PortLinkerApp(QMainWindow):
         help_tab = create_help_tab(self.tabs)
         self.tabs.addTab(help_tab, get_text("tab_troubleshoot"))
     
+    def setup_cloudflare_tab(self):
+        """Create the Cloudflare Tunnel tab"""
+        global cf_tunnel_ip_entry, cf_tunnel_port_entry, cf_tunnel_status_label
+        global cf_tunnel_url_text, cf_copy_url_btn, cf_url_frame
+        global cf_start_btn, cf_stop_btn
+        
+        cloudflare_tab = QWidget()
+        main_layout = QVBoxLayout(cloudflare_tab)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.setSpacing(15)
+        
+        # Info label
+        info_label = QLabel(get_text("cf_info_text"))
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet(
+            "background-color: #dbeafe; padding: 15px; border-radius: 5px; "
+            "color: #1e40af; border: 1px solid #93c5fd;"
+        )
+        main_layout.addWidget(info_label)
+        
+        # Form section
+        form_layout = QGridLayout()
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        form_layout.setSpacing(10)
+        form_layout.setColumnStretch(1, 1)
+        
+        # IP Address row
+        ip_label = QLabel(get_text("cf_tunnel_ip_label"))
+        form_layout.addWidget(ip_label, 0, 0)
+        
+        cf_tunnel_ip_entry = QLineEdit()
+        cf_tunnel_ip_entry.setMinimumWidth(250)
+        # Set default value from main tab if available
+        if ip_entry and ip_entry.text():
+            cf_tunnel_ip_entry.setText(ip_entry.text())
+        else:
+            cf_tunnel_ip_entry.setText("127.0.0.1")
+        form_layout.addWidget(cf_tunnel_ip_entry, 0, 1)
+        
+        # Port row
+        port_label = QLabel(get_text("cf_tunnel_port_label"))
+        form_layout.addWidget(port_label, 1, 0)
+        
+        cf_tunnel_port_entry = QLineEdit()
+        cf_tunnel_port_entry.setMinimumWidth(250)
+        cf_tunnel_port_entry.setText("80")
+        form_layout.addWidget(cf_tunnel_port_entry, 1, 1)
+        
+        main_layout.addLayout(form_layout)
+        
+        # Spacing
+        main_layout.addSpacing(20)
+        
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        main_layout.addWidget(separator)
+        
+        # Spacing
+        main_layout.addSpacing(20)
+        
+        # Button layout
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+        
+        cf_start_btn = QPushButton(get_text("cf_start_tunnel_btn"))
+        cf_start_btn.setObjectName("enableButton")
+        cf_start_btn.setMinimumHeight(40)
+        cf_start_btn.clicked.connect(start_cloudflare_tunnel)
+        button_layout.addWidget(cf_start_btn)
+        
+        cf_stop_btn = QPushButton(get_text("cf_stop_tunnel_btn"))
+        cf_stop_btn.setObjectName("disableButton")
+        cf_stop_btn.setMinimumHeight(40)
+        cf_stop_btn.setEnabled(False)
+        cf_stop_btn.clicked.connect(stop_cloudflare_tunnel)
+        button_layout.addWidget(cf_stop_btn)
+        
+        main_layout.addLayout(button_layout)
+        
+        # Spacing
+        main_layout.addSpacing(20)
+        
+        # Status label
+        cf_tunnel_status_label = QLabel(get_text("cf_status_stopped"))
+        cf_tunnel_status_label.setStyleSheet("font-weight: bold; padding: 10px; color: #64748b;")
+        main_layout.addWidget(cf_tunnel_status_label)
+        
+        # Spacing
+        main_layout.addSpacing(10)
+        
+        # URL display frame
+        cf_url_frame = QFrame()
+        cf_url_frame.setFrameShape(QFrame.StyledPanel)
+        cf_url_frame.setStyleSheet("background-color: #f1f5f9; padding: 10px; border-radius: 5px;")
+        url_layout = QVBoxLayout(cf_url_frame)
+        url_layout.setContentsMargins(10, 10, 10, 10)
+        url_layout.setSpacing(10)
+        
+        url_label = QLabel(get_text("cf_tunnel_url_label"))
+        url_label.setStyleSheet("font-weight: bold;")
+        url_layout.addWidget(url_label)
+        
+        cf_tunnel_url_text = QLabel("")
+        cf_tunnel_url_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        cf_tunnel_url_text.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
+        url_layout.addWidget(cf_tunnel_url_text)
+        
+        cf_copy_url_btn = QPushButton(get_text("cf_copy_url_btn"))
+        cf_copy_url_btn.setMinimumHeight(35)
+        cf_copy_url_btn.setEnabled(False)
+        cf_copy_url_btn.clicked.connect(copy_tunnel_url)
+        url_layout.addWidget(cf_copy_url_btn)
+        
+        cf_url_frame.setVisible(False)  # Initially hidden
+        main_layout.addWidget(cf_url_frame)
+        
+        # Add stretch to push everything to top
+        main_layout.addStretch()
+        
+        # Add tab
+        self.tabs.addTab(cloudflare_tab, get_text("tab_cloudflare"))
+    
     def detect_ip(self):
         """Detect and update local IP address"""
         listen_ip_entry.setText(get_local_ip())
@@ -2080,6 +2370,9 @@ class PortLinkerApp(QMainWindow):
 
     # Override closeEvent to clean up
     def closeEvent(self, event):
+        # Stop Cloudflare tunnel if running
+        if cloudflare_manager.is_running():
+            cloudflare_manager.stop_tunnel()
         # Call the parent class closeEvent
         super().closeEvent(event)
 
