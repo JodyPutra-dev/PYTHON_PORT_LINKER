@@ -21,6 +21,19 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QColor
 from cloudflare_tunnel_manager import CloudflareTunnelManager
 from config import TRANSLATIONS, DEFAULT_PORTS, get_text, get_current_language, set_current_language, toggle_language
+from core.network_utils import (
+    get_local_ip,
+    get_network_info,
+    check_port_in_use,
+    get_process_using_port,
+    kill_process_by_pid,
+    parse_port_string,
+    get_connected_devices,
+    resolve_hostname,
+    is_xampp_running,
+    get_xampp_paths,
+    stop_xampp_services
+)
 
 # Initialize Cloudflare Tunnel Manager
 cloudflare_manager = CloudflareTunnelManager()
@@ -253,39 +266,7 @@ QFrame#sectionFrame {
 }
 """
 
-def get_local_ip():
-    """Dapatkan alamat IP lokal perangkat yang terhubung ke jaringan."""
-    try:
-        # Cara 1: Buat koneksi dummy untuk mendapatkan IP yang digunakan untuk komunikasi jaringan
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Alamat tidak perlu dapat dijangkau, ini hanya untuk mendapatkan antarmuka default
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except:
-        try:
-            # Cara 2: Gunakan hostname jika cara 1 gagal
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            return local_ip
-        except:
-            try:
-                # Cara 3: Periksa semua alamat IP yang terkait dengan hostname
-                hostname = socket.gethostname()
-                ip_addresses = socket.gethostbyname_ex(hostname)
-                if ip_addresses and len(ip_addresses) > 1 and ip_addresses[2]:
-                    # Pilih alamat IP non-localhost yang pertama
-                    for ip in ip_addresses[2]:
-                        if not ip.startswith("127."):
-                            return ip
-                    # Jika semuanya localhost, gunakan yang pertama
-                    return ip_addresses[2][0]
-            except:
-                pass
-    
-    # Jika semua metode gagal, gunakan localhost sebagai fallback
-    return "192.168.0.2"
+
 
 def is_admin():
     try:
@@ -305,101 +286,27 @@ except Exception as e:
     QMessageBox.showerror("Error Admin", f"Terjadi error saat memeriksa hak admin:\n{str(e)}")
     sys.exit(1)
 
-def check_port_in_use(port):
-    """Periksa apakah port sedang digunakan oleh proses lain."""
-    try:
-        # Periksa apakah port sedang digunakan
-        port_check = subprocess.run(
-            ['netstat', '-ano', '|', 'findstr', f':{port}'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        return "LISTENING" in port_check.stdout
-    except:
-        return False
 
-def kill_process_by_pid(pid):
-    """Matikan proses berdasarkan PID."""
-    try:
-        subprocess.run(['taskkill', '/F', '/PID', str(pid)], 
-                      shell=True, 
-                      capture_output=True)
-        return True
-    except:
-        return False
-
-def get_process_using_port(port):
-    """Mengidentifikasi proses yang menggunakan port tertentu."""
-    try:
-        # Dapatkan ID proses yang menggunakan port
-        netstat_output = subprocess.run(
-            ['netstat', '-ano', '|', 'findstr', f':{port}'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        
-        if "LISTENING" not in netstat_output.stdout:
-            return "Tidak ada proses", None
-            
-        # Ekstrak PID dari output netstat
-        lines = netstat_output.stdout.strip().split('\n')
-        for line in lines:
-            if f':{port}' in line and 'LISTENING' in line:
-                parts = line.strip().split()
-                if len(parts) >= 5:
-                    pid = parts[-1]
-                    
-                    # Dapatkan nama proses dari PID
-                    tasklist_output = subprocess.run(
-                        ['tasklist', '/FI', f'PID eq {pid}'], 
-                        shell=True, 
-                        capture_output=True, 
-                        text=True
-                    )
-                    
-                    # Ekstrak nama proses
-                    if pid in tasklist_output.stdout:
-                        process_line = [line for line in tasklist_output.stdout.split('\n') 
-                                      if pid in line][0]
-                        process_name = process_line.split()[0]
-                        return f"{process_name} (PID: {pid})", pid
-        
-        return "Proses tidak dikenal", None
-    except Exception as e:
-        return f"Error mengidentifikasi proses: {str(e)}", None
 
 def stop_xampp():
+    """Handle port conflicts with UI interactions, using utilities from core.network_utils."""
     active_ports = get_active_ports()
     ports_in_use = []
     
-    # Periksa port mana yang sedang digunakan
+    # Check which ports are in use
     for port in active_ports:
         if check_port_in_use(port):
             ports_in_use.append(port)
     
-    # Jika tidak ada port yang digunakan, tidak perlu melakukan apa-apa
+    # If no ports in use, nothing to do
     if not ports_in_use:
         return True
         
-    # Coba identifikasi apakah XAMPP yang menggunakan port
-    is_xampp = False
-    try:
-        # Periksa proses httpd.exe
-        process_check = subprocess.run(
-            ['tasklist', '|', 'findstr', 'httpd.exe'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        if 'httpd.exe' in process_check.stdout:
-            is_xampp = True
-    except:
-        pass
+    # Check if XAMPP is running
+    xampp_detected = is_xampp_running()
         
-    if not is_xampp:
-        # Jika XAMPP tidak berjalan, hanya informasikan pengguna tentang konflik port
+    if not xampp_detected:
+        # If XAMPP not running, inform user about port conflicts
         if ports_in_use:
             port_info = []
             pid_list = []
@@ -412,7 +319,7 @@ def stop_xampp():
                     
             ports_str = ", ".join(port_info)
             
-            # Jika Python menggunakan port, tawarkan untuk mematikan proses tersebut
+            # If Python is using port, offer to kill the process
             python_processes = [p for p in pid_list if "python" in p[2].lower()]
             
             if python_processes:
@@ -433,19 +340,19 @@ def stop_xampp():
                 msgbox.exec()
                 
                 clicked_button = msgbox.clickedButton()
-                if clicked_button == cancel_button:  # Batal
+                if clicked_button == cancel_button:  # Cancel
                     return False
-                elif clicked_button == yes_button:  # Ya - Matikan proses
+                elif clicked_button == yes_button:  # Yes - Kill process
                     for port, pid, _ in python_processes:
                         if kill_process_by_pid(pid):
                             QMessageBox.information(None, "Berhasil", f"Berhasil mematikan proses yang menggunakan port {port}")
                         else:
                             QMessageBox.warning(None, "Peringatan", f"Gagal mematikan proses yang menggunakan port {port}")
-                    # Tunggu sebentar agar proses berakhir
+                    # Wait a bit for processes to end
                     time.sleep(1)
-                # else: Tidak - Lanjutkan
+                # else: No - Continue
             else:
-                # Proses non-Python biasa
+                # Regular non-Python processes
                 result = QMessageBox.question(
                     None,
                     "Konflik Port", 
@@ -459,7 +366,7 @@ def stop_xampp():
                     return False
         return True
         
-    # Jika kita sampai di sini, XAMPP sedang berjalan dan perlu dihentikan
+    # If we get here, XAMPP is running and needs to be stopped
     ports_list = ", ".join([str(p) for p in ports_in_use])
     result = QMessageBox.question(
         None,
@@ -474,37 +381,13 @@ def stop_xampp():
     if result != QMessageBox.Yes:
         return False
         
-    # Coba metode penghentian XAMPP umum
-    xampp_paths = [
-        r"C:\xampp\xampp_stop.exe",
-        r"C:\xampp\xampp-control.exe",
-    ]
+    # Stop XAMPP services using utility function
+    stop_xampp_services()
     
-    for path in xampp_paths:
-        if os.path.exists(path):
-            subprocess.run([path], 
-                          shell=True, 
-                          capture_output=True)
-            time.sleep(1)  # Beri waktu untuk berhenti
-            
-    # Coba hentikan layanan Apache jika ada
-    subprocess.run(
-        ["net", "stop", "Apache2.4"], 
-        shell=True, 
-        capture_output=True
-    )
-    
-    # Terakhir: Matikan semua proses Apache
-    subprocess.run(
-        ["taskkill", "/F", "/IM", "httpd.exe"], 
-        shell=True, 
-        capture_output=True
-    )
-    
-    # Tunggu sebentar agar proses berakhir
+    # Wait a bit for processes to end
     time.sleep(1)
     
-    # Periksa apakah kita berhasil membebaskan port
+    # Check if we successfully freed the ports
     ports_still_in_use = []
     for port in ports_in_use:
         if check_port_in_use(port):
@@ -575,84 +458,25 @@ def add_firewall_rules():
     except:
         return False
 
-def get_network_info():
-    """Dapatkan informasi jaringan untuk membantu mendiagnosis masalah koneksi."""
-    try:
-        # Dapatkan alamat IP
-        hostname = socket.gethostname()
-        ip_addresses = socket.gethostbyname_ex(hostname)
-        
-        # Dapatkan antarmuka jaringan aktif
-        ipconfig = subprocess.run(
-            ['ipconfig'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        
-        return (hostname, ip_addresses, ipconfig.stdout)
-    except Exception as e:
-        return (None, None, str(e))
+
 
 def get_active_ports():
-    """Dapatkan daftar port yang aktif dari UI."""
+    """Get list of active ports from UI."""
     try:
         global ports_entry
-        # Ambil dari entri teks port
+        # Get from port text entry
         port_text = ports_entry.text().strip()
-        return process_port_selection(port_text)
+        return parse_port_string(port_text, DEFAULT_PORTS)
     except:
         return DEFAULT_PORTS
 
 def process_port_selection(port_text):
-    """
-    Process a port selection string into a list of integer ports.
-    Supports "all", individual ports, comma-separated lists, and ranges.
-    
-    Args:
-        port_text (str): Text string containing port specifications
-            
-    Returns:
-        list: List of integer port numbers
-    """
-    # If empty, use port default
-    if not port_text:
+    """Process port selection with UI error handling."""
+    try:
+        return parse_port_string(port_text, DEFAULT_PORTS)
+    except ValueError as e:
+        QMessageBox.warning(None, get_text("port_add_title"), str(e))
         return DEFAULT_PORTS
-        
-    # If "all", use port default
-    if port_text.lower() == "all":
-        return DEFAULT_PORTS
-        
-    # Process string port
-    port_list = []
-    for part in port_text.split(','):
-        part = part.strip()
-        
-        # Check if this is a port range (e.g., 8000-8005)
-        if '-' in part:
-            start, end = part.split('-')
-            try:
-                start_port = int(start.strip())
-                end_port = int(end.strip())
-                # Add all ports in the range
-                port_list.extend(range(start_port, end_port + 1))
-            except ValueError:
-                QMessageBox.warning(None, get_text("port_add_title"), get_text("port_range_error", part=part))
-        else:
-            # Single port
-            try:
-                port_list.append(int(part))
-            except ValueError:
-                QMessageBox.warning(None, get_text("port_add_title"), get_text("port_format_error", part=part))
-                
-    # Remove duplicates
-    port_list = list(set(port_list))
-    
-    # Validate
-    if not port_list:
-        return DEFAULT_PORTS
-        
-    return port_list
 
 def add_port():
     """Tambahkan port baru ke daftar."""
@@ -1474,41 +1298,7 @@ def get_help_content_for_language(lang):
 </body>
 </html>"""
 
-def get_connected_devices():
-    """Get a list of devices connected to the same network."""
-    connected_devices = []
-    try:
-        # Using arp -a to get the list of devices on the network
-        arp_result = subprocess.run(
-            ['arp', '-a'], 
-            shell=True, 
-            capture_output=True, 
-            text=True,
-            timeout=5  # Reduce timeout to prevent long hangs
-        )
-        
-        if arp_result.returncode == 0:
-            # Parse the output for IP and MAC addresses
-            for line in arp_result.stdout.splitlines():
-                line = line.strip()
-                if line and not line.startswith("Interface"):
-                    parts = [p for p in line.split() if p.strip()]
-                    if len(parts) >= 2:
-                        ip_address = parts[0]
-                        mac_address = parts[1]
-                        if mac_address != "ff-ff-ff-ff-ff-ff" and not ip_address.startswith("224."):
-                            # Skip hostname resolution for faster results
-                            device_info = {
-                                "ip": ip_address,
-                                "mac": mac_address,
-                                "hostname": ""
-                            }
-                            connected_devices.append(device_info)
-        
-        return connected_devices
-    except Exception as e:
-        print(f"Error getting connected devices: {str(e)}")
-        return []
+
 
 def resolve_single_hostname(device, devices_table, status_label, current, batch_total, 
                            next_device_index, connected_devices, resolve_btn, cancel_btn,
@@ -1534,25 +1324,10 @@ def resolve_single_hostname(device, devices_table, status_label, current, batch_
         status_label.setText(f"Resolving hostname {current} of {batch_total} (total: {total_count})")
         QApplication.processEvents()
         
-        # Try to resolve hostname with a quick timeout
-        try:
-            hostname_result = subprocess.run(
-                ['ping', '-a', '-n', '1', '-w', '500', device["ip"]],  # 500ms timeout
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=0.8  # Shorter timeout
-            )
-            
-            # Extract hostname from ping output
-            if hostname_result.returncode == 0:
-                ping_output = hostname_result.stdout
-                hostname_match = re.search(r'Pinging ([^\s]+) \[', ping_output)
-                if hostname_match:
-                    hostname = hostname_match.group(1)
-                    device["hostname"] = hostname
-        except:
-            pass  # Just skip on error
+        # Try to resolve hostname using utility function
+        hostname = resolve_hostname(device["ip"], timeout_ms=500)
+        if hostname:
+            device["hostname"] = hostname
         
         # Clear resolving flag
         device["resolving"] = False
