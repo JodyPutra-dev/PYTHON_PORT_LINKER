@@ -34,9 +34,21 @@ from core.network_utils import (
     get_xampp_paths,
     stop_xampp_services
 )
+from core.firewall_manager import (
+    check_firewall_status,
+    check_firewall_rule_exists,
+    add_firewall_rule,
+    add_firewall_rules,
+    delete_firewall_rule,
+    delete_all_port_switcher_firewall_rules
+)
+from core.port_forwarding_service import PortForwardingService
 
 # Initialize Cloudflare Tunnel Manager
 cloudflare_manager = CloudflareTunnelManager()
+
+# Initialize Port Forwarding Service
+port_forwarding_service = PortForwardingService()
 
 
 
@@ -404,59 +416,7 @@ def stop_xampp():
         
     return True
 
-def check_firewall_status():
-    """Periksa status Windows Firewall dan apakah mungkin memblokir koneksi."""
-    try:
-        # Periksa status firewall
-        firewall_check = subprocess.run(
-            ['netsh', 'firewall', 'show', 'state'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        
-        # Coba juga sintaks yang lebih baru
-        firewall_check2 = subprocess.run(
-            ['netsh', 'advfirewall', 'show', 'allprofiles'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        
-        # Periksa apakah firewall aktif
-        firewall_active = False
-        
-        if "ON" in firewall_check.stdout or "ON" in firewall_check2.stdout:
-            firewall_active = True
-            
-        # Jika aktif, periksa apakah ada aturan untuk port kita
-        port_rules = subprocess.run(
-            ['netsh', 'advfirewall', 'firewall', 'show', 'rule', 'name=all', '|', 'findstr', 'Port_Switcher'], 
-            shell=True, 
-            capture_output=True, 
-            text=True
-        )
-        
-        return (firewall_active, port_rules.stdout)
-    except:
-        return (False, "Error memeriksa status firewall")
 
-def add_firewall_rules():
-    """Tambahkan aturan firewall untuk mengizinkan koneksi masuk pada port yang dipilih."""
-    try:
-        ports = get_active_ports()
-        
-        for port in ports:
-            rule_name = f"Port_Switcher_{port}"
-            subprocess.run([
-                'netsh', 'advfirewall', 'firewall', 'add', 'rule',
-                f'name={rule_name}', 'dir=in', 'action=allow',
-                'protocol=TCP', f'localport={port}'
-            ], shell=True, capture_output=True)
-        
-        return True
-    except:
-        return False
 
 
 
@@ -515,126 +475,105 @@ def enable_port_forwarding():
         QMessageBox.critical(None, get_text("error_title"), get_text("error_no_target_ip"))
         return
     
-    # Dapatkan daftar port aktif menggunakan fungsi yang sudah ada
+    # Get active ports from UI
     active_ports = get_active_ports()
     if not active_ports:
         QMessageBox.critical(None, get_text("error_title"), get_text("error_no_ports"))
         return
         
-    # Periksa apakah XAMPP sedang berjalan dan hentikan jika diperlukan
+    # Check if XAMPP is running and stop if needed (UI interaction)
     if not stop_xampp():
-        # Pengguna membatalkan atau XAMPP tidak dapat dihentikan
+        # User cancelled or XAMPP couldn't be stopped
         return
     
-    try:
-        # Hapus aturan yang ada terlebih dahulu untuk port-port yang aktif
-        for port in active_ports:
-            subprocess.call([
-                "netsh", "interface", "portproxy", "delete", 
-                "v4tov4", f"listenport={port}", "listenaddress=0.0.0.0"
-            ])
-            
-            # Juga coba hapus aturan untuk IP listen tertentu
-            if listen_ip != "0.0.0.0":
-                subprocess.call([
-                    "netsh", "interface", "portproxy", "delete", 
-                    "v4tov4", f"listenport={port}", f"listenaddress={listen_ip}"
-                ])
+    # Call the service to enable port forwarding
+    result = port_forwarding_service.enable_forwarding(listen_ip, ip, active_ports)
+    
+    # Handle the result
+    if not result["success"]:
+        QMessageBox.critical(None, get_text("error_title"), 
+                           result["error"] or "Failed to create port forwarding")
+        return False
+    
+    # Handle firewall messages
+    if result["firewall_active"]:
+        failed_ports = result["failed_firewall_ports"]
         
-        # Tambahkan aturan baru untuk setiap port
-        for port in active_ports:
-            # Jika listen_ip disediakan, tambahkan untuk IP tersebut
-            if listen_ip != "0.0.0.0":
-                subprocess.check_output([
-                    "netsh", "interface", "portproxy", "add", "v4tov4",
-                    f"listenport={port}", f"listenaddress={listen_ip}",
-                    f"connectport={port}", f"connectaddress={ip}"
-                ], stderr=subprocess.STDOUT)
-            
-            # Selalu tambahkan untuk semua antarmuka (0.0.0.0)
-            subprocess.check_output([
-                "netsh", "interface", "portproxy", "add", "v4tov4",
-                f"listenport={port}", "listenaddress=0.0.0.0",
-                f"connectport={port}", f"connectaddress={ip}"
-            ], stderr=subprocess.STDOUT)
-
-        # Periksa status firewall
-        firewall_active, rules = check_firewall_status()
-        if firewall_active:
-            # Selalu tambahkan aturan firewall untuk semua port aktif
-            for port in active_ports:
-                rule_name = f"Port_Switcher_{port}"
-                # Periksa apakah aturan sudah ada
-                rule_check = subprocess.run([
-                    'netsh', 'advfirewall', 'firewall', 'show', 'rule', f'name={rule_name}'
-                ], shell=True, capture_output=True, text=True)
-                
-                # Jika aturan belum ada, tambahkan
-                if "No rules match the specified criteria" in rule_check.stdout or rule_check.returncode != 0:
-                    subprocess.run([
-                        'netsh', 'advfirewall', 'firewall', 'add', 'rule',
-                        f'name={rule_name}', 'dir=in', 'action=allow',
-                        'protocol=TCP', f'localport={port}'
-                    ], shell=True, capture_output=True)
-            
-            # Tampilkan pesan sukses tentang aturan firewall
+        if result["firewall_success"] and not failed_ports:
+            # All firewall rules added successfully
             port_list = ", ".join([str(p) for p in active_ports])
-            QMessageBox.information(None, get_text("success_title"), f"Firewall rules successfully added for ports: {port_list}")
-        
-        # Tampilkan info jaringan untuk membantu troubleshoot
-        hostname, ip_addresses, ipconfig = get_network_info()
-        if ip_addresses and len(ip_addresses) > 1:
-            all_ips = "\n".join([f"- {ip}" for ip in ip_addresses[2]])
+            QMessageBox.information(None, get_text("success_title"), 
+                                  f"Firewall rules successfully added for ports: {port_list}")
+        elif failed_ports:
+            # Some firewall rules failed
+            failed_list = ", ".join([str(p) for p in failed_ports])
+            success_ports = [p for p in active_ports if p not in failed_ports]
+            success_list = ", ".join([str(p) for p in success_ports])
+            
             if get_current_language() == "en":
-                network_info = f"Your computer has the following IP addresses:\n{all_ips}\n\n" + \
-                              "Make sure your phone is on the same network and try to access one of these IPs."
+                msg = f"Warning: Failed to add firewall rules for ports: {failed_list}"
+                if success_ports:
+                    msg += f"\n\nSuccessfully added rules for: {success_list}"
             else:
-                network_info = f"Komputer Anda memiliki alamat IP berikut:\n{all_ips}\n\n" + \
-                              "Pastikan ponsel Anda berada di jaringan yang sama dan coba akses salah satu IP ini."
+                msg = f"Peringatan: Gagal menambahkan aturan firewall untuk port: {failed_list}"
+                if success_ports:
+                    msg += f"\n\nBerhasil menambahkan aturan untuk: {success_list}"
+            
+            QMessageBox.warning(None, get_text("warning_title") if get_current_language() == "en" else "Peringatan", msg)
         else:
-            network_info = "Unable to retrieve network information." if get_current_language() == "en" else "Tidak dapat mengambil informasi jaringan."
-        
-        # Format daftar port untuk tampilan status
-        port_list_str = "/".join([str(p) for p in active_ports])
-        
-        # Tampilkan status forwarding
-        status_text = get_text("status_enabled", listen_ip=listen_ip, target_ip=ip, ports=port_list_str)
-        status_label.setText(status_text)
-        status_label.setStyleSheet("color: #10b981; font-weight: bold; padding: 5px;")
-        
-        # Tampilkan aturan saat ini
-        show_current_rules()
-        
-        # Connection info dialog text
+            # All firewall rules failed
+            if get_current_language() == "en":
+                msg = "Failed to add any firewall rules. Port forwarding is active but may be blocked by firewall."
+            else:
+                msg = "Gagal menambahkan aturan firewall. Port forwarding aktif tetapi mungkin diblokir oleh firewall."
+            QMessageBox.warning(None, get_text("warning_title") if get_current_language() == "en" else "Peringatan", msg)
+    
+    # Get network info from result
+    hostname, ip_addresses, ipconfig = result["network_info"]
+    if ip_addresses and len(ip_addresses) > 1:
+        all_ips = "\n".join([f"- {ip}" for ip in ip_addresses[2]])
         if get_current_language() == "en":
-            connection_title = "Connection Info"
-            connection_text = f"Port forwarding enabled:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
-                            f"{network_info}\n\n" + \
-                            "If you cannot connect from your phone, check:\n" + \
-                            "1. Phone and PC are on the same network\n" + \
-                            "2. Try using the IPs listed above\n" + \
-                            "3. Windows Firewall may be blocking connections"
+            network_info = f"Your computer has the following IP addresses:\n{all_ips}\n\n" + \
+                          "Make sure your phone is on the same network and try to access one of these IPs."
         else:
-            connection_title = "Info Koneksi"
-            connection_text = f"Port forwarding diaktifkan:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
-                            f"{network_info}\n\n" + \
-                            "Jika Anda tidak dapat terhubung dari ponsel, periksa:\n" + \
-                            "1. Ponsel dan PC berada di jaringan yang sama\n" + \
-                            "2. Coba gunakan IP yang tercantum di atas\n" + \
-            "3. Windows Firewall mungkin memblokir koneksi"
-        
-        # Tampilkan info jaringan dalam dialog terpisah
-        QMessageBox.information(
-            None,
-            connection_title, 
-            connection_text
-        )
-    except subprocess.CalledProcessError as e:
-        QMessageBox.critical(None, get_text("error_title"), f"Failed to create port forwarding: {e.output.decode('utf-8', errors='ignore')}")
-        return False
-    except Exception as e:
-        QMessageBox.critical(None, get_text("error_title"), f"Failed to create port forwarding: {str(e)}")
-        return False
+            network_info = f"Komputer Anda memiliki alamat IP berikut:\n{all_ips}\n\n" + \
+                          "Pastikan ponsel Anda berada di jaringan yang sama dan coba akses salah satu IP ini."
+    else:
+        network_info = "Unable to retrieve network information." if get_current_language() == "en" else "Tidak dapat mengambil informasi jaringan."
+    
+    # Format port list for status display
+    port_list_str = "/".join([str(p) for p in active_ports])
+    
+    # Update status label
+    status_text = get_text("status_enabled", listen_ip=listen_ip, target_ip=ip, ports=port_list_str)
+    status_label.setText(status_text)
+    status_label.setStyleSheet("color: #10b981; font-weight: bold; padding: 5px;")
+    
+    # Show current rules
+    show_current_rules()
+    
+    # Connection info dialog text
+    if get_current_language() == "en":
+        connection_title = "Connection Info"
+        connection_text = f"Port forwarding enabled:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
+                        f"{network_info}\n\n" + \
+                        "If you cannot connect from your phone, check:\n" + \
+                        "1. Phone and PC are on the same network\n" + \
+                        "2. Try using the IPs listed above\n" + \
+                        "3. Windows Firewall may be blocking connections"
+    else:
+        connection_title = "Info Koneksi"
+        connection_text = f"Port forwarding diaktifkan:\n{listen_ip}:{port_list_str} → {ip}:{port_list_str}\n\n" + \
+                        f"{network_info}\n\n" + \
+                        "Jika Anda tidak dapat terhubung dari ponsel, periksa:\n" + \
+                        "1. Ponsel dan PC berada di jaringan yang sama\n" + \
+                        "2. Coba gunakan IP yang tercantum di atas\n" + \
+                        "3. Windows Firewall mungkin memblokir koneksi"
+    
+    # Show network info dialog
+    QMessageBox.information(None, connection_title, connection_text)
+    
+    return True
         
     return True
 
@@ -758,69 +697,21 @@ def update_tunnel_status():
     except:
         pass  # Ignore errors in periodic check
 
-def delete_all_port_switcher_firewall_rules():
-    """Hapus semua aturan firewall yang dimulai dengan 'Port_Switcher_'."""
-    try:
-        # Gunakan PowerShell untuk menghapus aturan berdasarkan DisplayName
-        try:
-            powershell_cmd = 'powershell -Command "Get-NetFirewallRule | Where-Object { $_.DisplayName -like \'Port_Switcher_*\' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue"'
-            subprocess.run(powershell_cmd, shell=True, capture_output=True, timeout=10)
-        except Exception as e:
-            print(f"PowerShell method failed: {e}")
-        
-        # Alternatif dengan netsh (sebagai fallback)
-        # Coba hapus aturan satu per satu menggunakan nama yang umum
-        common_ports = [80, 443, 9072, 7760, 7761, 7762, 7763]
-        for port in common_ports:
-            try:
-                rule_name = f"Port_Switcher_{port}"
-                subprocess.run([
-                    'netsh', 'advfirewall', 'firewall', 'delete', 'rule',
-                    f'name={rule_name}'
-                ], shell=True, capture_output=True, timeout=5)
-            except Exception as e:
-                print(f"Failed to delete rule for port {port}: {e}")
-        
-        # Sebagai upaya terakhir, coba dapatkan daftar semua aturan dan filter yang dimulai dengan Port_Switcher_
-        try:
-            firewall_rules = subprocess.run([
-                'netsh', 'advfirewall', 'firewall', 'show', 'rule', 'name=all'
-            ], shell=True, capture_output=True, text=True, timeout=10)
-            
-            if firewall_rules.returncode == 0 and firewall_rules.stdout:
-                import re
-                rule_names = re.findall(r'Rule Name:\s+(Port_Switcher_\d+)', firewall_rules.stdout)
-                
-                for rule_name in rule_names:
-                    try:
-                        subprocess.run([
-                            'netsh', 'advfirewall', 'firewall', 'delete', 'rule',
-                            f'name="{rule_name}"'
-                        ], shell=True, capture_output=True, timeout=5)
-                    except Exception as e:
-                        print(f"Failed to delete rule {rule_name}: {e}")
-        except Exception as e:
-            print(f"Regex method failed: {e}")
-            
-        return True
-    except Exception as e:
-        print(f"Error in delete_all_port_switcher_firewall_rules: {e}")
-        # Don't raise the exception, just return False to prevent crashes
-        return False
+
         
 
 def disable_port_forwarding():
     """Disable port forwarding"""
     try:
-        status_label.setText(get_text("status_disabled"))
-        
-        # Dapatkan port-port aktif menggunakan fungsi yang sudah ada
+        # Get active ports from UI
         active_ports = get_active_ports()
         
-        # Dapatkan IP listen tertentu
+        # Get specific listen IP
         listen_ip = listen_ip_entry.text().strip() or "0.0.0.0"
         
-        # Reset semua aturan (ini menghapus SEMUA port forwarding)
+        # Determine whether to delete selected ports or all ports
+        delete_all = False
+        
         if active_ports:
             # Create message box with custom buttons
             msgbox = QMessageBox()
@@ -846,66 +737,12 @@ def disable_port_forwarding():
             if clicked_button == cancel_button:  # User clicked Cancel
                 return
             
-            if clicked_button == yes_button:  # User clicked Yes
-                # Hapus hanya port yang dipilih
-                port_deletion_errors = []
-                for port in active_ports:
-                    # Hapus aturan dengan listen_ip tertentu
-                    if listen_ip != "0.0.0.0":
-                        try:
-                            subprocess.run([
-                                "netsh", "interface", "portproxy", "delete", 
-                                "v4tov4", f"listenport={port}", f"listenaddress={listen_ip}"
-                            ], check=False, capture_output=True, timeout=5)
-                        except Exception as e:
-                            port_deletion_errors.append(f"Failed to delete port {port} on IP {listen_ip}: {str(e)}")
-                    
-                    # Hapus aturan untuk semua antarmuka
-                    try:
-                        subprocess.run([
-                            "netsh", "interface", "portproxy", "delete", 
-                            "v4tov4", f"listenport={port}", "listenaddress=0.0.0.0"
-                        ], check=False, capture_output=True, timeout=5)
-                    except Exception as e:
-                        port_deletion_errors.append(f"Failed to delete port {port} on IP 0.0.0.0: {str(e)}")
-                        
-                    # Hapus aturan firewall untuk port ini
-                    try:
-                        rule_name = f"Port_Switcher_{port}"
-                        subprocess.run([
-                            'netsh', 'advfirewall', 'firewall', 'delete', 'rule',
-                            f'name={rule_name}'
-                        ], shell=True, capture_output=True, timeout=5)
-                    except Exception as e:
-                        port_deletion_errors.append(f"Failed to delete firewall rule for port {port}: {str(e)}")
-                        
-                # Coba hapus aturan firewall yang mungkin masih tersisa
-                try:
-                    delete_all_port_switcher_firewall_rules()
-                except Exception as e:
-                    port_deletion_errors.append(f"Failed to delete all firewall rules: {str(e)}")
-                    
-                if port_deletion_errors:
-                    print("Port deletion errors occurred:")
-                    for error in port_deletion_errors:
-                        print(f"- {error}")
-            else:  # User clicked No - Hapus semua
-                # Hapus SEMUA port forwarding dengan reset
-                try:
-                    subprocess.run([
-                        "netsh", "interface", "portproxy", "reset"
-                    ], check=False, capture_output=True, timeout=5)
-                except Exception as e:
-                    print(f"Failed to reset port proxy: {str(e)}")
-                
-                # Hapus SEMUA aturan firewall Port_Switcher
-                try:
-                    delete_all_port_switcher_firewall_rules()
-                except Exception as e:
-                    print(f"Failed to delete all firewall rules: {str(e)}")
+            if clicked_button == yes_button:  # User clicked Yes - delete selected ports only
+                delete_all = False
+            elif clicked_button == no_button:  # User clicked No - delete all ports
+                delete_all = True
         else:
-            # Tidak ada port yang dipilih, hapus semua
-            # Create message box with custom buttons
+            # No ports selected, ask to delete all
             msgbox = QMessageBox()
             
             if get_current_language() == "en":
@@ -928,30 +765,26 @@ def disable_port_forwarding():
                 return
                 
             if msgbox.clickedButton() == yes_button:  # User clicked Yes
-                try:
-                    subprocess.run([
-                        "netsh", "interface", "portproxy", "reset"
-                    ], check=False, capture_output=True, timeout=5)
-                except Exception as e:
-                    print(f"Failed to reset port proxy: {str(e)}")
-                
-                # Hapus SEMUA aturan firewall Port_Switcher
-                try:
-                    delete_all_port_switcher_firewall_rules()
-                except Exception as e:
-                    print(f"Failed to delete all firewall rules: {str(e)}")
+                delete_all = True
         
-        # Update status regardless of any possible errors above
+        # Call the service to disable port forwarding
+        result = port_forwarding_service.disable_forwarding(active_ports, listen_ip, delete_all)
+        
+        # Handle deletion errors
+        if result["deletion_errors"]:
+            print("Port deletion errors occurred:")
+            for error in result["deletion_errors"]:
+                print(f"- {error}")
+        
+        # Update status regardless of any possible errors
         status_label.setText(get_text("status_disabled"))
         status_label.setStyleSheet("color: #2563eb; font-weight: bold; padding: 5px;")
         
-        # Bersihkan dan perbarui tampilan aturan
+        # Clear and update rules display
         show_current_rules()
         
         QMessageBox.information(None, get_text("success_title"), get_text("success_disabled"))
-    except Exception as e:
-        print(f"Error updating UI after disabling port forwarding: {str(e)}")
-            
+        
     except Exception as e:
         print(f"Critical error in disable_port_forwarding: {str(e)}")
         # Try to show error message if possible
@@ -964,28 +797,21 @@ def disable_port_forwarding():
     return True
 
 def show_current_rules():
+    """Show current port forwarding rules"""
     try:
-        # Dapatkan aturan portproxy saat ini
-        result = subprocess.check_output(["netsh", "interface", "portproxy", "show", "all"], 
-                                        stderr=subprocess.STDOUT, 
-                                        universal_newlines=True,
-                                        timeout=10)
+        # Call the service to get current rules
+        success, result = port_forwarding_service.get_current_rules()
         
-        # Perbarui widget teks dengan aturan
+        # Update the rules text widget
         try:
             rules_text.setPlainText(result)
         except Exception as e:
             print(f"Error updating rules text widget: {e}")
             
-    except subprocess.CalledProcessError as e:
-        try:
-            rules_text.setPlainText(f"Error mengambil aturan: {str(e)}")
-        except Exception as ui_error:
-            print(f"Error updating rules text widget after subprocess error: {ui_error}")
     except Exception as e:
         print(f"Unexpected error in show_current_rules: {e}")
         try:
-            rules_text.setPlainText(f"Error tak terduga: {str(e)}")
+            rules_text.setPlainText(f"Error: {str(e)}")
         except:
             pass
 
